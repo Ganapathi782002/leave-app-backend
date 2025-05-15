@@ -1,0 +1,35 @@
+{
+    "compilerOptions": {
+      /* Language and Environment */
+      "target": "es2022",                                  /* Set the JavaScript language version for emitted JavaScript and include compatible library declarations. */
+      "lib": ["es2022", "dom"],                            /* Specify a set of bundled library declaration files that describe the target environment. */
+      "module": "commonjs",                                /* Specify what module code is generated. */
+      "rootDir": "./src",                                  /* Specify the root folder within your source files. */
+      "outDir": "./dist",                                  /* Specify the output directory for compiled content. */
+      "esModuleInterop": true,                             /* Emit additional JavaScript to ease support for importing CommonJS modules. This enables `allowSyntheticDefaultImports` for type compatibility. */
+      "forceConsistentCasingInFileNames": true,            /* Ensure that casing is correct in imports. */
+
+      /* Type Checking */
+      "strict": true,                                      /* Enable all strict type-checking options. */
+      "noImplicitAny": true,                               /* Enable error reporting for expressions and declarations with an implied `any` type.. */
+      "skipLibCheck": true,                                /* Skip type checking all .d.ts files. */
+
+      /* Emit */
+      "experimentalDecorators": true,                      /* Enable experimental support for TC39 stage 2 @decorators. */
+      "emitDecoratorMetadata": true,                       /* Emit design-type metadata for decorated declarations as an experiment. */
+
+      /* Modules */
+      "baseUrl": "./",                                     /* Specify the base directory to resolve non-relative module names. */
+      "paths": {                                           /* Specify a set of entries that re-map imports to lookup locations relative to the `baseUrl`. */
+        "*": ["node_modules/*"]
+      }
+    },
+    "include": [
+      "src/**/*.ts"                                        /* Include all .ts files in the src directory and its subdirectories */
+    ],
+    "exclude": [
+      "node_modules",                                      /* Exclude the node_modules directory */
+      "dist"                                               /* Exclude the output directory */
+    ]
+  }
+  
