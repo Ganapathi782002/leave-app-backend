@@ -191,6 +191,7 @@ const loginHandler: RequestHandler<
 
     if (!user) {
       console.log(">>> LoginHandler: User not found"); // Log user not found
+      console.log(">>> LoginHandler: Preparing to send 401 response");
       res.status(401).json({ message: "Invalid credentials" }); // 401 Unauthorized
       return; // Exit the handler
     }
