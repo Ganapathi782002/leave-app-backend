@@ -27,7 +27,7 @@ let LeaveApproval = class LeaveApproval {
     approver_id;
     action; // TypeScript type: ApprovalAction Enum value
     comments; // TypeScript type: string or null
-    action_at; // Timestamp when the action was taken
+    approved_at; // Timestamp when the action was taken
     // Define the Many-to-One relationship with Leave
     // An approval record belongs to one Leave request
     leave; // TypeScript type: Leave entity
@@ -63,7 +63,7 @@ __decorate([
 __decorate([
     (0, typeorm_1.Column)({ type: "timestamp", default: () => "CURRENT_TIMESTAMP" }),
     __metadata("design:type", Date)
-], LeaveApproval.prototype, "action_at", void 0);
+], LeaveApproval.prototype, "approved_at", void 0);
 __decorate([
     (0, typeorm_1.ManyToOne)(() => Leave_1.Leave, (leave) => leave.approvals) // 'approvals' is the inverse side property in Leave entity
     ,

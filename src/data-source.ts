@@ -13,7 +13,7 @@ import { SeederOptions } from 'typeorm-extension';
 
 // Load environment variables
 dotenv.config(); // Ensure this is called
-
+const isSSL = process.env.SSL ==="REQUIRED"
 console.log("Value of process.env.DB_NAME:", process.env.DB_NAME); // <-- Add this log
 
 const dataSourceOptions: DataSourceOptions & SeederOptions = {
@@ -23,6 +23,7 @@ const dataSourceOptions: DataSourceOptions & SeederOptions = {
     username: process.env.DB_USER, // <-- Ensure this is DB_USER
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME, // <-- Ensure this is DB_NAME
+    ssl: isSSL ? {rejectUnauthorized : false} : undefined,
     synchronize: false, // Set to true for development/testing, false for production
     logging: true, // Set to true to see SQL queries
     entities: [User, Leave, LeaveType, LeaveBalance, Role, LeaveApproval],

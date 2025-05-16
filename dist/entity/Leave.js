@@ -22,6 +22,7 @@ var LeaveStatus;
     LeaveStatus["Approved"] = "Approved";
     LeaveStatus["Rejected"] = "Rejected";
     LeaveStatus["Cancelled"] = "Cancelled";
+    LeaveStatus["Awaiting_Admin_Approval"] = "Awaiting_Admin_Approval";
 })(LeaveStatus || (exports.LeaveStatus = LeaveStatus = {}));
 let Leave = class Leave {
     leave_id;
@@ -34,8 +35,11 @@ let Leave = class Leave {
     required_approvals;
     applied_at;
     updated_at; // Define the Many-to-One relationship with User
+    processed_by_id; // ID of the user who last processed this request
+    processed_at; // Timestamp when the request was last processed
     user; // Define the Many-to-One relationship with LeaveType
     leaveType; // --- ADD THIS One-to-Many relationship with LeaveApproval --- // A Leave request can have many approval records // The inverse side on the LeaveApproval entity is the 'leave' property
+    processedBy;
     approvals; // Property name for the list of approval records
 };
 exports.Leave = Leave;
@@ -84,6 +88,16 @@ __decorate([
     __metadata("design:type", Date)
 ], Leave.prototype, "updated_at", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ nullable: true }) // processed_by_id can be null initially (when status is Pending)
+    ,
+    __metadata("design:type", Object)
+], Leave.prototype, "processed_by_id", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: "timestamp", nullable: true }) // processed_at can be null initially
+    ,
+    __metadata("design:type", Object)
+], Leave.prototype, "processed_at", void 0);
+__decorate([
     (0, typeorm_1.ManyToOne)(() => User_1.User, (user) => user.leaves),
     (0, typeorm_1.JoinColumn)({ name: "user_id" }),
     __metadata("design:type", User_1.User)
@@ -93,6 +107,12 @@ __decorate([
     (0, typeorm_1.JoinColumn)({ name: "type_id" }),
     __metadata("design:type", LeaveType_1.LeaveType)
 ], Leave.prototype, "leaveType", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => User_1.User, { createForeignKeyConstraints: false }) // Adjust options based on your DB constraints
+    ,
+    (0, typeorm_1.JoinColumn)({ name: "processed_by_id" }),
+    __metadata("design:type", User_1.User)
+], Leave.prototype, "processedBy", void 0);
 __decorate([
     (0, typeorm_1.OneToMany)(() => LeaveApproval_1.LeaveApproval, (leaveApproval) => leaveApproval.leave),
     __metadata("design:type", Array)

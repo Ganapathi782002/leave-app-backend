@@ -36,7 +36,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.AppDataSource = void 0;
 // src/data-source.ts
 require("reflect-metadata");
-const typeorm_1 = require("typeorm"); // Keep DataSourceOptions
+const typeorm_1 = require("typeorm");
 const dotenv = __importStar(require("dotenv"));
 const User_1 = require("./entity/User");
 const Leave_1 = require("./entity/Leave");
@@ -45,24 +45,25 @@ const LeaveBalance_1 = require("./entity/LeaveBalance");
 const Role_1 = require("./entity/Role");
 const LeaveApproval_1 = require("./entity/LeaveApproval");
 // Load environment variables
-dotenv.config();
-// Define the options object, explicitly typing it as a combination of DataSourceOptions and SeederOptions
+dotenv.config(); // Ensure this is called
+const isSSL = process.env.SSL === "REQUIRED";
+console.log("Value of process.env.DB_NAME:", process.env.DB_NAME); // <-- Add this log
 const dataSourceOptions = {
-    type: "postgres", // or your database type
+    type: "mysql", // <-- Ensure this is "mysql"
     host: process.env.DB_HOST,
-    port: parseInt(process.env.DB_PORT || "5432"),
-    username: process.env.DB_USERNAME,
+    port: parseInt(process.env.DB_PORT || "3306"),
+    username: process.env.DB_USER, // <-- Ensure this is DB_USER
     password: process.env.DB_PASSWORD,
-    database: process.env.DB_DATABASE,
+    database: process.env.DB_NAME, // <-- Ensure this is DB_NAME
+    ssl: isSSL ? { rejectUnauthorized: false } : undefined,
     synchronize: false, // Set to true for development/testing, false for production
     logging: true, // Set to true to see SQL queries
-    entities: [User_1.User, Leave_1.Leave, LeaveType_1.LeaveType, LeaveBalance_1.LeaveBalance, Role_1.Role, LeaveApproval_1.LeaveApproval], // List all your entities here
-    migrations: [], // Add your migration paths here later
+    entities: [User_1.User, Leave_1.Leave, LeaveType_1.LeaveType, LeaveBalance_1.LeaveBalance, Role_1.Role, LeaveApproval_1.LeaveApproval],
+    migrations: [],
     subscribers: [],
-    // --- Add these for TypeORM Seeding ---
-    seeds: ["src/database/seeds/**/*{.ts,.js}"], // Path to your seed files
-    factories: ["src/database/factories/**/*{.ts,.js}"], // Path to your factory files (optional for now)
-    // --- End TypeORM Seeding Config ---
+    seeds: ["src/database/seeds/**/*{.ts,.js}"],
+    factories: ["src/database/factories/**/*{.ts,.js}"],
 };
-// Pass the options object to the DataSource constructor
-exports.AppDataSource = new typeorm_1.DataSource(dataSourceOptions); // <-- Use the typed options object
+console.log("DataSource Options object:", dataSourceOptions); // <-- Add this log
+exports.AppDataSource = new typeorm_1.DataSource(dataSourceOptions);
+// ... rest of the file ...

@@ -22,6 +22,7 @@ let LeaveBalance = class LeaveBalance {
     year; // TypeScript type: number
     total_days; // TypeScript type: number (JavaScript represents decimals as numbers)
     used_days; // TypeScript type: number
+    available_days;
     // Define the Many-to-One relationship with User
     // The inverse side on the User entity is the 'leaveBalances' property
     user; // TypeScript type: User entity
@@ -51,12 +52,16 @@ __decorate([
 __decorate([
     (0, typeorm_1.Column)({ type: "decimal", precision: 5, scale: 2 }) // Decimal with precision and scale
     ,
-    __metadata("design:type", Number)
+    __metadata("design:type", String)
 ], LeaveBalance.prototype, "total_days", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: "decimal", precision: 5, scale: 2, default: 0.0 }),
-    __metadata("design:type", Number)
+    __metadata("design:type", String)
 ], LeaveBalance.prototype, "used_days", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'decimal', precision: 5, scale: 2, default: '0.00' }),
+    __metadata("design:type", String)
+], LeaveBalance.prototype, "available_days", void 0);
 __decorate([
     (0, typeorm_1.ManyToOne)(() => User_1.User, (user) => user.leaveBalances),
     (0, typeorm_1.JoinColumn)({ name: "user_id" }) // Explicitly specify the foreign key column name
