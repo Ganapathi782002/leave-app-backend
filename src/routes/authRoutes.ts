@@ -169,9 +169,11 @@ const loginHandler: RequestHandler<
   {} // Req Query (none for this route)
 > = async (req, res): Promise<void> => {
   // Async handler returns a Promise<void>
+  console.log(">>> Entered loginHandler");
   const { email, password } = req.body; // Destructure email and password from the request body // --- Input Validation --- // Check if email and password are provided
 
   if (!email || !password) {
+    console.log(">>> LoginHandler: Missing email or password");
     res.status(400).json({ message: "Email and password are required" }); // 400 Bad Request
     return; // Exit the handler
   }
@@ -180,12 +182,15 @@ const loginHandler: RequestHandler<
     // --- Find User by Email ---
     // Query the database to find the user with the provided email
     // Crucially, select the 'password_hash' column as it's not included by default
+    console.log(">>> LoginHandler: Attempting to find user by email:", email); // Before findOne
     const user = await userRepository.findOne({
       where: { email: email }, // Find user where email matches // Select specific columns to return, including password_hash for comparison
       select: ["user_id", "name", "email", "password_hash", "role_id"], // Include password_hash
     }); // If no user is found with the provided email
+    console.log(">>> LoginHandler: User found?", !!user);
 
     if (!user) {
+      console.log(">>> LoginHandler: User not found"); // Log user not found
       res.status(401).json({ message: "Invalid credentials" }); // 401 Unauthorized
       return; // Exit the handler
     }
@@ -193,10 +198,13 @@ const loginHandler: RequestHandler<
     // --- Compare Passwords ---
     // Use bcryptjs.compare to compare the provided plaintext password with the stored hash
     // This is an async operation
+    console.log(">>> LoginHandler: Comparing passwords");
     const passwordMatch = await bcrypt.compare(password, user.password_hash); // Use bcryptjs.compare
+    console.log(">>> LoginHandler: Password match?", passwordMatch);
 
     // If the passwords do not match
     if (!passwordMatch) {
+      console.log(">>> LoginHandler: Password does not match");
       res.status(401).json({ message: "Invalid credentials" }); // 401 Unauthorized
       return; // Exit the handler
     }
@@ -204,12 +212,16 @@ const loginHandler: RequestHandler<
     // --- Generate JWT Token ---
     // If email and password match, generate a JSON Web Token
     // The token payload typically includes non-sensitive user information like ID and role
+    console.log(">>> LoginHandler: Passwords match, generating token");
     const token = jwt.sign(
       { user_id: user.user_id, role_id: user.role_id }, // Payload: include user ID and role ID
       jwtSecret, // The secret key for signing the token
       { expiresIn: "1h" } // Token expiration time (e.g., '1h', '7d', '2m')
     );
     // --- End Generate JWT Token ---
+    console.log(">>> LoginHandler: Token generated"); // After jwt.sign
+
+    console.log(">>> LoginHandler: Sending success response (200)");
 
     // Log successful login (optional)
     console.log(
@@ -227,14 +239,17 @@ const loginHandler: RequestHandler<
         role_id: user.role_id,
       },
     });
+    console.log(">>> LoginHandler: Response sent"); // After sending 200
     return; // Exit the handler
   } catch (error: any) {
     // --- Handle Errors ---
     // Catch any errors that occurred during the login process (database errors, bcrypt errors, etc.)
+    console.error(">>> LoginHandler: Caught error during login:", error);
     console.error("Error during user login:", error); // Send a 500 Internal Server Error response
     res.status(500).json({ message: "Internal server error during login" });
     return; // Exit the handler
   }
+  console.log(">>> LoginHandler: End of handler (should not be reached)");
 };
 
 // Register the /api/auth/login route for POST requests
