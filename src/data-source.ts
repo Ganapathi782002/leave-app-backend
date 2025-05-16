@@ -24,9 +24,9 @@ const dataSourceOptions: DataSourceOptions & SeederOptions = {
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME, // <-- Ensure this is DB_NAME
     ssl: isSSL ? {rejectUnauthorized : false} : undefined,
-    synchronize: false, // Set to true for development/testing, false for production
+    synchronize: true, // Set to true for development/testing, false for production
     logging: true, // Set to true to see SQL queries
-    entities: [User, Leave, LeaveType, LeaveBalance, Role, LeaveApproval],
+    entities: ["dist/entity/**/*.js"],
     migrations: [],
     subscribers: [],
     seeds: ["src/database/seeds/**/*{.ts,.js}"],
