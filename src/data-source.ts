@@ -26,7 +26,7 @@ const dataSourceOptions: DataSourceOptions & SeederOptions = {
     ssl: process.env.SSL === "REQUIRED" ? { rejectUnauthorized: false } : undefined,
     synchronize: false,// Set to true for development/testing, false for production
     logging: true, // Set to true to see SQL queries
-    entities: ["dist/entity/**/*.js"],
+    entities: [process.env.NODE_ENV === 'production' ? 'dist/entity/**/*.js' : 'src/entity/**/*.ts'],
     migrations: [],
     subscribers: [],
     seeds: ["src/database/seeds/**/*{.ts,.js}"],
