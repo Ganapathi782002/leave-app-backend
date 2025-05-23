@@ -1,9 +1,4 @@
-// src/routes/adminRoutes.ts - COMPLETE & CORRECTED
-// my-leave-app-backend/src/routes/adminRoutes.ts
-
-console.log("--- Loading adminRoutes.ts ---"); // Keep this log
 import express, { RequestHandler } from "express";
-// Import TypeORM data source and entities
 import { AppDataSource } from "../data-source";
 import { LeaveType } from "../entity/LeaveType"; // Import the LeaveType entity
 import { LeaveBalance } from "../entity/LeaveBalance"; // Import LeaveBalance entity
@@ -12,16 +7,14 @@ import { Role } from "../entity/Role"; // Import the Role entity for user manage
 import { FindManyOptions, In, And, Or } from "typeorm"; // Import FindManyOptions for TypeORM queries
 import { Leave, LeaveStatus } from '../entity/Leave';
 import { LeaveApproval, ApprovalAction } from "../entity/LeaveApproval";
-// --- IMPORT Constants from the new file ---
-// This line is added to import constants and the mapping from constants.ts
 import { roleInitialBalances, ADMIN_ROLE_ID, EMPLOYEE_ROLE_ID, MANAGER_ROLE_ID, INTERN_ROLE_ID } from '../constants';
-// --- END IMPORT Constants ---
+
 
 // Use bcryptjs consistently for password hashing
 import bcryptjs from "bcryptjs"; // Use bcryptjs
-// Import authentication middleware and types
 import protect, { AuthenticatedRequest } from "../middleware/authMiddleware";
-import { Request, Response, NextFunction } from "express"; // Import Request, Response, NextFunction
+import { Request, Response, NextFunction } from "express";
+import { ParsedQs } from "qs";
 
 
 // --- Define Interfaces for Request and Response Bodies ---
@@ -30,7 +23,7 @@ import { Request, Response, NextFunction } from "express"; // Import Request, Re
 interface CreateLeaveTypeRequestBody {
   name: string;
   requires_approval: boolean;
-  is_balance_based: boolean; // Add other properties if your LeaveType entity has them and they are creatable via API
+  is_balance_based: boolean;
 }
 
 // Interface for the request body when creating a User
@@ -43,7 +36,6 @@ interface CreateUserRequestBody {
 }
 
 // Interface for the structure of the User object sent back in successful responses (e.g., after creation or fetching lists)
-// Excludes sensitive information like password hash.
 interface UserResponse {
   user_id: number;
   name: string;
@@ -55,8 +47,6 @@ interface UserResponse {
     role_id: number;
     name: string; // Assuming Role entity has a 'name' property
   };
-  // Add other properties from User entity that you want to send back
-  // e.g., created_at: Date; updated_at: Date;
 }
 
 // --- NEW Interface for GET /api/admin/users Response (Includes Balances) ---
@@ -70,7 +60,6 @@ interface UserWithBalancesResponse extends UserResponse { // Extend the existing
         year: number; // Include the year
     }[]; // Array of balance summaries
 }
-// --- End NEW Interface ---
 
 
 // Generic error response structure
@@ -78,27 +67,22 @@ interface ErrorResponse {
   message: string; // A descriptive error message
 }
 
-// Interface for the query parameters for getting users
-import { ParsedQs } from "qs"; // Import ParsedQs for query parameters type
 interface GetUsersQueryParams extends ParsedQs {
-  role_id?: string; // role_id query parameter will come as a string
+  role_id?: string;
 }
-// --- End Interfaces ---
 
 
 // Create an Express router instance for admin routes
 const router = express.Router();
 
-// --- ADDED LOG AT THE START OF THE ROUTER (Keep this) ---
 router.use((req: Request, res: Response, next: NextFunction) => {
-  console.log(
-    "--- Admin Router Received Request:",
-    req.method,
-    req.originalUrl
-  );
+//   console.log(
+//     "--- Admin Router Received Request:",
+//     req.method,
+//     req.originalUrl
+//   );
   next(); // Pass the request to the next middleware or route handler
 });
-// --- END ADDED LOG ---
 
 const calculateWorkingDays = (startDate: Date, endDate: Date): number => {
   let count = 0;
@@ -118,8 +102,6 @@ const calculateWorkingDays = (startDate: Date, endDate: Date): number => {
 };
 
 
-// --- Get TypeORM Repositories ---
-// Access the repositories for interacting with the database entities
 const leaveTypeRepository = AppDataSource.getRepository(LeaveType); // Repository for LeaveType entity
 const leaveBalanceRepository = AppDataSource.getRepository(LeaveBalance); // Get LeaveBalance Repository
 const userRepository = AppDataSource.getRepository(User); // Repository for User entity
@@ -127,17 +109,12 @@ const roleRepository = AppDataSource.getRepository(Role); // Repository for Role
 const leaveRepository = AppDataSource.getRepository(Leave);
 const leaveApprovalRepository = AppDataSource.getRepository(LeaveApproval);
 
-// --- Handler for GET /api/admin/leave-types - Get all leave types (Admin Only) ---
-// Endpoint: GET /api/admin/leave-types
-// Requires 'protect' middleware for authentication
 const getLeaveTypesForAdminHandler: RequestHandler<
   {}, // Req Params (none for this route)
   LeaveType[] | ErrorResponse, // Res Body: array of LeaveType objects OR error message
   {}, // Req Body (none for GET)
   {} // Req Query (none for this route)
 > = async (req: AuthenticatedRequest, res): Promise<void> => {
-  // Async handler returns Promise<void>
-  // Ensure user and their role ID are available from the protect middleware
   const admin_user_id = req.user?.user_id;
   const admin_user_role_id = req.user?.role_id; // If authentication failed or user info is missing (should be caught by protect, but defensive check)
 
@@ -145,8 +122,8 @@ const getLeaveTypesForAdminHandler: RequestHandler<
     res
       .status(401)
       .json({ message: "Authentication failed or user information missing." });
-    return; // Exit handler
-  } // --- Role Check: Allow only Admin ---
+    return;
+  }
 
   if (admin_user_role_id !== ADMIN_ROLE_ID) {
     // Log the unauthorized attempt (optional but good practice)
@@ -157,8 +134,8 @@ const getLeaveTypesForAdminHandler: RequestHandler<
       message:
         "Forbidden: You do not have sufficient permissions to view this resource.",
     });
-    return; // Exit handler
-  } // --- End Role Check ---
+    return;
+  } 
   try {
     // Fetch all leave types from the database using the repository
     const leaveTypes = await leaveTypeRepository.find({
@@ -177,17 +154,12 @@ const getLeaveTypesForAdminHandler: RequestHandler<
   }
 };
 
-// --- Handler for POST /api/admin/leave-types - Create a new leave type (Admin Only) ---
-// Endpoint: POST /api/admin/leave-types
-// Requires 'protect' middleware for authentication
 const createLeaveTypeHandler: RequestHandler<
   {}, // Req Params (none)
   LeaveType | ErrorResponse, // Res Body: the created LeaveType object OR error message
   CreateLeaveTypeRequestBody, // Req Body: name, requires_approval, is_balance_based
   {} // Req Query (none)
 > = async (req: AuthenticatedRequest, res): Promise<void> => {
-  // Async handler returns Promise<void>
-  // Ensure user and their role ID are available from the protect middleware (the Admin performing the action)
   const admin_user_id = req.user?.user_id;
   const admin_user_role_id = req.user?.role_id;
 
@@ -197,8 +169,8 @@ const createLeaveTypeHandler: RequestHandler<
   // If authentication failed or user info missing (should be caught by protect, but defensive check)
   if (admin_user_id === undefined || admin_user_role_id === undefined) {
     res.status(401).json({ message: "Authentication failed." });
-    return; // Exit handler
-  } // --- Role Check: Allow only Admin ---
+    return;
+  }
 
   if (admin_user_role_id !== ADMIN_ROLE_ID) {
     // Log the unauthorized attempt
@@ -209,10 +181,8 @@ const createLeaveTypeHandler: RequestHandler<
       message:
         "Forbidden: You do not have sufficient permissions to perform this action.",
     });
-    return; // Exit handler
-  } // --- End Role Check ---
-  // --- Input Validation ---
-  // Check if required fields are present and have the correct types
+    return;
+  }
   if (
     !name ||
     typeof requires_approval !== "boolean" ||
@@ -224,40 +194,28 @@ const createLeaveTypeHandler: RequestHandler<
     }); // 400 Bad Request
     return; // Exit handler
   }
-  // TODO: Add validation to check if name is not empty string after trim
 
   try {
-    // TODO: Add a check to see if a leave type with this name already exists (409 Conflict)
-
-    // --- Create New LeaveType Entity ---
-    // Create a new instance of the LeaveType entity
     const newLeaveType = new LeaveType();
     // Assign properties from the request body
     newLeaveType.name = name.trim(); // Trim whitespace
     newLeaveType.requires_approval = requires_approval;
     newLeaveType.is_balance_based = is_balance_based; // Set other properties if your LeaveType entity has them
-    // --- Save New LeaveType ---
-    // Save the new leave type entity to the database
     const createdLeaveType = await leaveTypeRepository.save(newLeaveType);
 
     // Log the successful creation (optional)
-    console.log(
-      `Admin user ${admin_user_id} created new leave type: ${name} (ID: ${createdLeaveType.type_id})`
-    );
-
-    // --- Send Success Response ---
-    // Respond with a 201 Created status and the created LeaveType object
+//     console.log(
+//       `Admin user ${admin_user_id} created new leave type: ${name} (ID: ${createdLeaveType.type_id})`
+//     );
     res.status(201).json(createdLeaveType);
-    return; // Exit handler
+    return;
   } catch (error: any) {
-    // --- Handle Errors ---
     console.error("Error creating new leave type:", error); // Check for specific database errors, e.g., unique constraint violation on name
     if (error.code === "ER_DUP_ENTRY") {
-      // Example MySQL error code for duplicate entry
       res.status(409).json({
         message: `Leave type with name '${name.trim()}' already exists.`,
       }); // 409 Conflict
-      return; // Exit handler
+      return;
     }
     // Handle other errors with a 500 Internal Server Error response
     res
@@ -267,18 +225,13 @@ const createLeaveTypeHandler: RequestHandler<
   }
 };
 
-// --- Handler for POST /api/admin/users - Create a new user (Admin Only) ---
-// Endpoint: POST /api/admin/users
-// Requires 'protect' middleware for authentication
 const createUserHandler: RequestHandler<
   {}, // Req Params (none)
   UserResponse | ErrorResponse, // Res Body: created User (UserResponse) OR error message
   CreateUserRequestBody, // Req Body: name, email, password, role_id (+ optional manager_id)
   {} // Req Query (none)
 > = async (req: AuthenticatedRequest, res): Promise<void> => {
-  // Async handler returns Promise<void>
-  // Ensure user and their role ID are available from the protect middleware (the Admin performing the action)
-  console.log("--- Inside createUserHandler ---");
+//   console.log("--- Inside createUserHandler ---");
   const admin_user_id = req.user?.user_id;
   const admin_user_role_id = req.user?.role_id;
 
@@ -288,8 +241,8 @@ const createUserHandler: RequestHandler<
   // If authentication failed or user info missing (should be caught by protect, but defensive check)
   if (admin_user_id === undefined || admin_user_role_id === undefined) {
     res.status(401).json({ message: "Authentication failed." });
-    return; // Exit handler
-  } // --- Role Check: Allow only Admin ---
+    return;
+  }
 
   if (admin_user_role_id !== ADMIN_ROLE_ID) {
     // Log the unauthorized attempt
@@ -300,21 +253,16 @@ const createUserHandler: RequestHandler<
       message:
         "Forbidden: You do not have sufficient permissions to perform this action.",
     });
-    return; // Exit handler
-  } // --- End Role Check ---
-  // --- Input Validation ---
-  // Check if required fields are present
+    return;
+  }
   if (!name || !email || !password || role_id === undefined) {
     res.status(400).json({
       message: "Missing required fields (name, email, password, role_id).",
     }); // 400 Bad Request
     return; // Exit handler
   }
-  // TODO: Add more robust validation (email format, password strength)
 
   try {
-    // --- Check for Existing User ---
-    // Query the database to see if a user with the provided email already exists
     const existingUser = await userRepository.findOne({
       where: { email: email.trim() },
     }); // Trim email
@@ -335,50 +283,26 @@ const createUserHandler: RequestHandler<
       return; // Exit handler
     }
 
-    // TODO: Validate manager_id if provided (must exist and have Manager role)
-    // If manager_id is provided and not null, check if a user with that ID exists and is a Manager
-    // const manager = await userRepository.findOne({ where: { user_id: manager_id, role_id: MANAGER_ROLE_ID } });
-    // if (manager_id !== null && manager_id !== undefined && !manager) { ... error response ... } // Handle manager_id validation
-
-    // --- Hash Password ---
     // Generate a salt and hash the plaintext password
     const salt = await bcryptjs.genSalt(10); // Recommended salt rounds for bcryptjs
     const hashedPassword = await bcryptjs.hash(password, salt); // Use bcryptjs.hash
 
-    // --- Create New User Entity ---
-    // Create a new instance of the User entity
     const newUser = new User();
     // Assign properties from the request body
-    newUser.name = name.trim(); // Trim whitespace
-    newUser.email = email.trim(); // Trim whitespace
+    newUser.name = name.trim();
+    newUser.email = email.trim();
     newUser.password_hash = hashedPassword; // Store the hashed password
-    newUser.role = role; // Assign the fetched Role entity (assuming ManyToOne relationship)
-    // OR if your User entity just stores role_id: newUser.role_id = role_id;
+    newUser.role = role;
     newUser.manager_id = manager_id; // Assign manager_id (can be null or a valid manager's user_id)
 
-    // --- Save New User ---
     // Save the new user entity to the database
     const createdUser = await userRepository.save(newUser);
-
-    // Log the successful creation (optional)
-    console.log(
-      `Admin user ${admin_user_id} created new user: ${createdUser.email} (ID: ${createdUser.user_id}, Role: ${role.name})`
-    );
 
     // --- IMPLEMENTATION: Trigger Initial Leave Balance Creation Here ---
     try {
       console.log(
         `Triggering initial leave balance creation for user ID ${createdUser.user_id}, Role: ${role.name}...`
       );
-
-      // --- REMOVE Local roleInitialBalances Mapping ---
-      // Use the imported mapping from constants.ts instead
-      /*
-      const roleInitialBalances: {
-        [roleId: number]: { leaveTypeName: string; initialDays: number }[];
-      } = { ... }; // REMOVE THIS LOCAL DEFINITION
-      */
-      // --- End REMOVE ---
 
 
       // Get the specific balance rules for the created user's role using the IMPORTED mapping
@@ -438,18 +362,18 @@ const createUserHandler: RequestHandler<
         if (newBalances.length > 0) {
           // Save the newly created leave balance entities to the database
           await leaveBalanceRepository.save(newBalances); // <-- Save the array of balances
-          console.log(
-            `createUserHandler: Successfully created ${newBalances.length} initial leave balances for user ID ${createdUser.user_id}.`
-          );
+//           console.log(
+//             `createUserHandler: Successfully created ${newBalances.length} initial leave balances for user ID ${createdUser.user_id}.`
+//           );
         } else {
-          console.log(
-            `createUserHandler: No initial leave balance rules defined for role ${role.name}. Skipping balance creation.`
-          );
+//           console.log(
+//             `createUserHandler: No initial leave balance rules defined for role ${role.name}. Skipping balance creation.`
+//           );
         }
       } else {
-        console.log(
-          `createUserHandler: No initial leave balance rules defined for role ${role.name}. Skipping balance creation.`
-        );
+//         console.log(
+//           `createUserHandler: No initial leave balance rules defined for role ${role.name}. Skipping balance creation.`
+//         );
       }
     } catch (balanceError: any) {
       // Catch errors specific to the balance creation process
@@ -458,11 +382,6 @@ const createUserHandler: RequestHandler<
         balanceError
       ); // Decide if a balance creation failure should prevent user creation success. // Generally, user creation success should be reported, and balance creation failure logged. // You might add a warning message to the success response later.
     }
-    // --- End IMPLEMENTATION: Trigger Initial Leave Balance Creation ---
-
-    // --- Send Success Response ---
-    // Send the created user object back in the response (EXCLUDE password_hash)
-    // Create a plain object copy to control which properties are sent
     const userResponse: UserResponse = {
       // Explicitly type the response object
       user_id: createdUser.user_id,
@@ -474,10 +393,9 @@ const createUserHandler: RequestHandler<
         // Include nested role details
         role_id: role.role_id, // Correct: Access role_id directly from the fetched role object
         name: role.name,
-      }, // Add other properties from UserResponse interface here if needed // e.g., created_at: createdUser.created_at,
+      },
     };
 
-    // Respond with a 201 Created status and the user response object
     res.status(201).json(userResponse);
     return; // Exit handler
   } catch (error: any) {
@@ -499,11 +417,6 @@ const createUserHandler: RequestHandler<
   }
 };
 
-
-// --- Handler for GET /api/admin/users - Get all users or filter by role (Admin Only) ---
-// Endpoint: GET /api/admin/users?role_id=<role_id>
-// Requires 'protect' middleware for authentication
-// This handler replaces the commented-out getUsersAdminHandler
 const getUsersHandler: RequestHandler<
   {}, // Req Params (none)
   UserWithBalancesResponse[] | ErrorResponse, // Res Body: array of UserResponse objects OR error message
@@ -514,7 +427,7 @@ const getUsersHandler: RequestHandler<
     const admin_user_id = req.user?.user_id;
     const admin_user_role_id = req.user?.role_id;
 
-    console.log(`--- Admin user ${admin_user_id} accessing /api/admin/users ---`);
+    //console.log(`--- Admin user ${admin_user_id} accessing /api/admin/users ---`);
 
 
     // If authentication failed or user info is missing (should be caught by protect, but defensive check)
@@ -549,20 +462,20 @@ const getUsersHandler: RequestHandler<
         // Add role filter if provided
         if (filterRoleId !== undefined && !isNaN(filterRoleId)) { // <-- Ensure it's a valid number
             findOptions.where = { role_id: filterRoleId };
-            console.log(`Workspaceing users with Role ID filter: ${filterRoleId}`);
+//             console.log(`Workspaceing users with Role ID filter: ${filterRoleId}`);
         } else if (roleIdParam !== undefined) { // If role_id was provided but wasn't a valid number
             console.warn(`Admin user ${admin_user_id} provided invalid role_id query parameter: ${roleIdParam}`);
             res.status(400).json({ message: "Invalid role_id provided in query parameters. Must be a number." }); // Bad Request
             return;
         }
         else {
-             console.log("Fetching all users (no role filter).");
+            //  console.log("Fetching all users (no role filter).");
         }
 
 
         // Fetch users from the database. Include the 'role' relation.
         const users = await userRepository.find(findOptions);
-        console.log(`Workspaceed ${users.length} users.`);
+        //console.log(`Workspaceed ${users.length} users.`);
 
         const usersWithBalances: UserWithBalancesResponse[] = [];
         const currentYear = new Date().getFullYear(); // Get current year for balance fetch
@@ -625,7 +538,7 @@ const getUsersHandler: RequestHandler<
         } // If no users found, usersWithBalances remains empty
 
 
-        console.log(`Prepared response for ${usersWithBalances.length} users including balances.`);
+        //console.log(`Prepared response for ${usersWithBalances.length} users including balances.`);
 
 
         // Send the list of users (with balances) back
@@ -653,7 +566,7 @@ const getAdminApprovalsHandler: RequestHandler<
   const admin_user_id = req.user?.user_id;
   const admin_user_role_id = req.user?.role_id;
 
-  console.log(`--- Admin user ${admin_user_id} accessing leave requests needing Admin approval ---`);
+  //console.log(`--- Admin user ${admin_user_id} accessing leave requests needing Admin approval ---`);
 
   // If authentication failed or user info is missing (should be handled by middleware)
   if (admin_user_id === undefined || admin_user_role_id === undefined) {
@@ -670,9 +583,6 @@ const getAdminApprovalsHandler: RequestHandler<
   // --- End Role Check ---
 
   try {
-    // Fetch leave requests that require Admin approval:
-    // Use TypeORM's 'where' clause with an array of conditions at the top level,
-    // which acts as an OR operator between the conditions.
     const leavesNeedingAdminApproval = await leaveRepository.find({
       where: [ // Use an array for OR conditions
             { status: LeaveStatus.Awaiting_Admin_Approval }, // Condition 1: Status is Awaiting_Admin_Approval
@@ -685,7 +595,7 @@ const getAdminApprovalsHandler: RequestHandler<
       order: { applied_at: "ASC" }, // Order by application date ascending
     });
 
-    console.log(`Workspaceed ${leavesNeedingAdminApproval.length} leave requests needing Admin approval.`);
+    //console.log(`Workspaceed ${leavesNeedingAdminApproval.length} leave requests needing Admin approval.`);
 
     // Send the list in the response
     res.status(200).json(leavesNeedingAdminApproval);
@@ -698,12 +608,9 @@ const getAdminApprovalsHandler: RequestHandler<
   }
 };
 
-// --- Register the NEW Route ---
-// Add this route registration within your router.get/post/put/delete calls in adminRoutes.ts
-
 router.get('/leave-requests/approvals-needed', protect, getAdminApprovalsHandler); // <-- Register the new route
 
-const updateLeaveStatusByAdminHandler: RequestHandler< // <-- NEW, CLEAR NAME
+const updateLeaveStatusByAdminHandler: RequestHandler<
     { id: string }, // Req Params (expecting leave ID in the URL)
     { message: string, leaveId: number, newStatus: LeaveStatus } | { message: string }, // Res Body (success or error)
     { status: 'Approved' | 'Rejected', comments?: string }, // Req Body (expecting 'Approved' or 'Rejected')
@@ -719,7 +626,7 @@ const updateLeaveStatusByAdminHandler: RequestHandler< // <-- NEW, CLEAR NAME
      // Use the request body type interface (if defined in adminRoutes too, otherwise assert string type)
     const { status, comments } = req.body; // Get the status and comments from the request body
 
-    console.log(`--- Admin ${admin_user_id} (Role: ${admin_role_id}) attempting to update status of leave ${leaveId} via /api/admin/leave-requests/:id/status ---`);
+    //console.log(`--- Admin ${admin_user_id} (Role: ${admin_role_id}) attempting to update status of leave ${leaveId} via /api/admin/leave-requests/:id/status ---`);
 
     // --- Role Check: Only Admins can use this handler ---
     if (!loggedInUser || !admin_user_id || admin_role_id !== ADMIN_ROLE_ID) {
@@ -738,10 +645,6 @@ const updateLeaveStatusByAdminHandler: RequestHandler< // <-- NEW, CLEAR NAME
 
 
     try {
-        // Find the leave request.
-        // Admins process leaves that are 'Pending' (Manager self-requests)
-        // or 'Awaiting_Admin_Approval' (long Employee/Intern leaves after Manager approval).
-        // Eager load 'user' to check submitting user's role and 'leaveType' for balance logic.
         const leaveRequest = await leaveRepository.findOne({
             where: [
                 { leave_id: leaveId, status: LeaveStatus.Pending }, // Manager self-requests
@@ -760,18 +663,15 @@ const updateLeaveStatusByAdminHandler: RequestHandler< // <-- NEW, CLEAR NAME
         // --- Implement Admin Approval/Rejection Logic ---
         const oldStatus = leaveRequest.status; // Store old status for logging/transitions
 
-        console.log(`Admin ${admin_user_id}: Processing leave ${leaveId} (current status ${oldStatus}), Admin action: ${status}.`);
+        //console.log(`Admin ${admin_user_id}: Processing leave ${leaveId} (current status ${oldStatus}), Admin action: ${status}.`);
 
         let newStatus: LeaveStatus; // Variable to hold the determined new status
 
         if (status === 'Approved') {
             // The Admin is APPROVING the request. This is always a final approval for leaves in Admin-processable statuses.
             newStatus = LeaveStatus.Approved;
-            console.log(`Leave ${leaveId} admin approved -> status set to '${newStatus}'.`);
+            //console.log(`Leave ${leaveId} admin approved -> status set to '${newStatus}'.`);
 
-            // --- Apply Leave Balance Logic here (as Admin approval is final) ---
-            // This logic updates the used_days in the LeaveBalance table if balance-based.
-            // Ensure you are calling your calculateWorkingDays function and removing the processed_at/processed_by_id assignments on userBalance.
              try {
                  const leaveType = leaveRequest.leaveType; // Already eager loaded
 
@@ -801,25 +701,24 @@ const updateLeaveStatusByAdminHandler: RequestHandler< // <-- NEW, CLEAR NAME
                          // Note: processed_at/processed_by_id are NOT on LeaveBalance entity - removed those lines.
 
                          await leaveBalanceRepository.save(userBalance); // Save updated balance
-                         console.log(`Admin ${admin_user_id}: Updated leave balance for user ${leaveRequest.user_id}, type ${leaveRequest.type_id}, year ${leaveYear}. Used days now: ${userBalance.used_days}`);
+                         //console.log(`Admin ${admin_user_id}: Updated leave balance for user ${leaveRequest.user_id}, type ${leaveRequest.type_id}, year ${leaveYear}. Used days now: ${userBalance.used_days}`);
 
                      } else {
                          console.error(`Admin ${admin_user_id}: Leave balance not found for user ${leaveRequest.user_id}, type ${leaveRequest.type_id}, year ${leaveYear}. Cannot update balance.`);
                          // Log error, decide how to handle. For now, proceed without balance update.
                      }
                  } else {
-                      console.log(`Admin ${admin_user_id}: Leave type ${leaveType?.name} is not balance-based. No balance update needed for leave ${leaveId}.`);
+                      //console.log(`Admin ${admin_user_id}: Leave type ${leaveType?.name} is not balance-based. No balance update needed for leave ${leaveId}.`);
                  }
              } catch (balanceError: any) { // Explicitly type catch error
                  console.error(`Admin ${admin_user_id}: Error during leave balance update for leave ${leaveId}:`, balanceError);
              }
-            // --- End Leave Balance Logic ---
 
 
         } else if (status === 'Rejected') {
             // The Admin is REJECTING the request. This is a final status.
             newStatus = LeaveStatus.Rejected;
-            console.log(`Leave ${leaveId} rejected by Admin -> status set to '${newStatus}'.`);
+            //console.log(`Leave ${leaveId} rejected by Admin -> status set to '${newStatus}'.`);
             // No balance update needed for rejection
         } else {
              // Should not happen due to the request body type, but defensive
@@ -834,9 +733,6 @@ const updateLeaveStatusByAdminHandler: RequestHandler< // <-- NEW, CLEAR NAME
         leaveRequest.processed_by_id = admin_user_id; // Store the Admin's user ID
         leaveRequest.processed_at = new Date(); // Record processing timestamp
 
-        // --- Log Approval/Rejection Action ---
-        // Log this action in the LeaveApproval table
-        // Log if status was Pending or Awaiting_Admin_Approval and changed to Approved or Rejected
         if (
             (oldStatus === LeaveStatus.Pending || oldStatus === LeaveStatus.Awaiting_Admin_Approval) &&
             (newStatus === LeaveStatus.Approved || newStatus === LeaveStatus.Rejected)
@@ -851,7 +747,7 @@ const updateLeaveStatusByAdminHandler: RequestHandler< // <-- NEW, CLEAR NAME
                      newApproval.comments = comments; // Include comments if provided
 
                      await leaveApprovalRepository.save(newApproval);
-                     console.log(`Admin ${admin_user_id}: Action '${newApproval.action}' logged for leave ${leaveRequest.leave_id} by approver ${admin_user_id}.`);
+                     //console.log(`Admin ${admin_user_id}: Action '${newApproval.action}' logged for leave ${leaveRequest.leave_id} by approver ${admin_user_id}.`);
 
                  } catch (logError) {
                      console.error(`Admin ${admin_user_id}: Error logging approval action for leave ${leaveId}:`, logError);
@@ -861,14 +757,9 @@ const updateLeaveStatusByAdminHandler: RequestHandler< // <-- NEW, CLEAR NAME
                  console.warn(`Admin ${admin_user_id}: Could not log approval action for leave ${leaveId}. leaveApprovalRepository or admin_user_id missing.`);
             }
         }
-        // --- End Log Approval/Rejection Action ---
-
-
-        // Save the leave request with the final determined status and processor details
-        // This is the SINGLE save operation after all logic is determined.
         await leaveRepository.save(leaveRequest);
 
-        console.log(`Leave request ${leaveId} final status after Admin processing: ${leaveRequest.status}.`);
+        //console.log(`Leave request ${leaveId} final status after Admin processing: ${leaveRequest.status}.`);
 
         // Send success response back to the frontend
         res.status(200).json({
@@ -876,7 +767,7 @@ const updateLeaveStatusByAdminHandler: RequestHandler< // <-- NEW, CLEAR NAME
             leaveId: leaveRequest.leave_id,
             newStatus: leaveRequest.status // Return the *actual* new status that was set
         });
-        return; // Explicit return
+        return;
 
 
     } catch (error: any) { // Explicitly type catch error
@@ -901,9 +792,8 @@ const deleteLeaveTypeHandler: RequestHandler<
 
     const leaveTypeId = parseInt(req.params.id, 10);
 
-    console.log(`--- Admin ${admin_user_id} (Role: ${admin_role_id}) attempting to delete leave type ${leaveTypeId} ---`);
+    //console.log(`--- Admin ${admin_user_id} (Role: ${admin_role_id}) attempting to delete leave type ${leaveTypeId} ---`);
 
-    // --- Role Check: Only Admins can use this handler ---
     if (!req.user || !admin_user_id || admin_role_id !== ADMIN_ROLE_ID) {
         console.error(`User ${admin_user_id} with role ${admin_role_id} attempted to use delete leave type endpoint.`);
         res.status(403).json({ message: "Forbidden: Only admins can delete leave types." });
@@ -918,10 +808,6 @@ const deleteLeaveTypeHandler: RequestHandler<
     }
 
     try {
-        // --- Check if the leave type is currently in use ---
-        // Before deleting a leave type, check if any existing leaves or leave balances
-        // refer to this type_id. Preventing deletion is safer than cascading or soft deleting
-        // at this stage.
 
         // Check the Leave table
         const existingLeaves = await leaveRepository.count({ where: { type_id: leaveTypeId } });
@@ -952,7 +838,7 @@ const deleteLeaveTypeHandler: RequestHandler<
             return;
         }
 
-        console.log(`Admin ${admin_user_id}: Successfully deleted leave type ${leaveTypeId}.`);
+        //console.log(`Admin ${admin_user_id}: Successfully deleted leave type ${leaveTypeId}.`);
         res.status(200).json({ message: "Leave type deleted successfully." });
         return;
 
@@ -967,10 +853,6 @@ const deleteLeaveTypeHandler: RequestHandler<
 
 router.delete('/leave-types/:id', protect, deleteLeaveTypeHandler);
 
-// --- Register the Routes ---
-// Attach the protect middleware to ensure only authenticated users can access these admin routes
-// The handler then performs the Admin role check
-
 // Route to get list of leave types (for Admin use, e.g., in dropdowns for admin forms)
 router.get("/leave-types", protect, getLeaveTypesForAdminHandler);
 
@@ -983,9 +865,4 @@ router.post("/users", protect, createUserHandler);
 // Route to get a list of users (with optional role filter) - UNCOMMENTED AND USING CORRECT HANDLER
 router.get("/users", protect, getUsersHandler);
 
-
-// TODO: Add routes for PUT /api/admin/users/:id (Update User), DELETE /api/admin/users/:id (Delete User)
-
-// Export the admin router to be used in your main Express app file (e.e., server.ts)
-// Ensure this matches the import in your server.ts (named export)
 export { router as adminRoutes };

@@ -1,12 +1,8 @@
-// leave-app-backend-ts/src/middleware/roleMiddleware.ts
 import { Request, Response, NextFunction, RequestHandler } from "express"; // <-- Import RequestHandler
 import { AppDataSource } from "../data-source";
 import { User } from "../entity/User";
 import { Role } from "../entity/Role";
-
-// Assuming your authentication middleware adds user info including role_id to req.user
-// Import the AuthenticatedRequest interface (Assuming it's exported from authMiddleware.ts now)
-import { AuthenticatedRequest } from "./authMiddleware"; // <-- Import AuthenticatedRequest
+import { AuthenticatedRequest } from "./authMiddleware";
 
 /**
  * Middleware to authorize access based on user roles.

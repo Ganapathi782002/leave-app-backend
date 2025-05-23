@@ -21,21 +21,19 @@ app.use(cors()); // Or configure specific origins
 app.use(express.json()); // For parsing application/json
 
 app.use((req: Request, res: Response, next: NextFunction) => {
-  // <-- Ensure Request, Response, NextFunction are imported from 'express'
-  console.log("--- App Received Request:", req.method, req.originalUrl);
   next(); // Pass the request to the next middleware or router
 });
 
 // Database Initialization
 AppDataSource.initialize()
   .then(() => {
-    console.log("TypeORM Data Source has been initialized!");
+    // console.log("TypeORM Data Source has been initialized!");
 
     // Mount your routers
-    app.use("/api/auth", authRoutes); // <-- Mount authRoutes (example path)
+    app.use("/api/auth", authRoutes);
     app.use("/api/leaves", leaveRoutes);
-    app.use("/api/manager", managerRoutes); // <-- Mount managerRoutes (example path)
-    app.use("/api/admin", adminRoutes); // <-- Mount the admin router
+    app.use("/api/manager", managerRoutes);
+    app.use("/api/admin", adminRoutes); 
 
     // Basic route for testing server
     app.get("/", (req, res) => {
@@ -44,7 +42,7 @@ AppDataSource.initialize()
 
     // Start the server
     app.listen(port, host, () => {
-      console.log(`Server running at http://${host}:${port}`);
+      // console.log(`Server running at http://${host}:${port}`);
     });
   })
   .catch((error) =>

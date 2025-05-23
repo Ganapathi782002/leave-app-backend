@@ -1,4 +1,3 @@
-// leave-app-backend-ts/src/entity/LeaveType.ts
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from "typeorm";
 import { Leave } from "./Leave"; // Import related entities
 import { LeaveBalance } from "./LeaveBalance";

@@ -1,20 +1,13 @@
-// src/data-source.ts
 import "reflect-metadata";
 import { DataSource, DataSourceOptions } from "typeorm";
 import * as dotenv from "dotenv";
-import { User } from "./entity/User";
-import { Leave } from "./entity/Leave";
-import { LeaveType } from "./entity/LeaveType";
-import { LeaveBalance } from "./entity/LeaveBalance";
-import { Role } from "./entity/Role";
-import { LeaveApproval } from "./entity/LeaveApproval";
 import { SeederOptions } from 'typeorm-extension';
 
 
 // Load environment variables
 dotenv.config(); // Ensure this is called
 //const isSSL = process.env.SSL ==="REQUIRED"
-console.log("Value of process.env.DB_NAME:", process.env.DB_NAME); // <-- Add this log
+//console.log("Value of process.env.DB_NAME:", process.env.DB_NAME); // <-- Add this log
 
 const dataSourceOptions: DataSourceOptions & SeederOptions = {
     type: "mysql", // <-- Ensure this is "mysql"
@@ -25,7 +18,7 @@ const dataSourceOptions: DataSourceOptions & SeederOptions = {
     database: process.env.DB_NAME, // <-- Ensure this is DB_NAME
     ssl: process.env.SSL === "REQUIRED" ? { rejectUnauthorized: false } : undefined,
     synchronize: false,// Set to true for development/testing, false for production
-    logging: true, // Set to true to see SQL queries
+    logging: process.env.NODE_ENV === 'development' ? ['query', 'error', 'log'] : ['error'],
     entities: [process.env.NODE_ENV === 'production' ? 'dist/entity/**/*.js' : 'src/entity/**/*.ts'],
     migrations: [],
     subscribers: [],
@@ -33,7 +26,7 @@ const dataSourceOptions: DataSourceOptions & SeederOptions = {
     factories: ["src/database/factories/**/*{.ts,.js}"],
 };
 
-console.log("DataSource Options object:", dataSourceOptions); // <-- Add this log
+//console.log("DataSource Options object:", dataSourceOptions); // <-- Add this log
 
 export const AppDataSource = new DataSource(dataSourceOptions);
 

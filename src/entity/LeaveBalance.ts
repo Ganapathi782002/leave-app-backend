@@ -1,4 +1,3 @@
-// leave-app-backend-ts/src/entity/LeaveBalance.ts
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -6,7 +5,7 @@ import {
   ManyToOne,
   JoinColumn,
 } from "typeorm";
-import { User } from "./User"; // Import related entities
+import { User } from "./User";
 import { LeaveType } from "./LeaveType";
 
 @Entity("leave_balances") // Maps this class to the 'leave_balances' table

@@ -1,4 +1,3 @@
-// leave-app-backend-ts/src/entity/LeaveApproval.ts
 import {
     Entity,
     PrimaryGeneratedColumn,
@@ -6,14 +5,14 @@ import {
     ManyToOne,
     JoinColumn,
 } from "typeorm";
-import { Leave } from "./Leave"; // Import the Leave entity
-import { User } from "./User";   // Import the User entity (for the approver)
+import { Leave } from "./Leave";
+import { User } from "./User"; 
 
 // Define the possible actions for an approval record
 export enum ApprovalAction {
     Approved = "Approved",
     Rejected = "Rejected",
-    Reviewed = "Reviewed", // Optional: if you want to log when a manager just views it
+    Reviewed = "Reviewed",
 }
 
 @Entity("leave_approvals") // Maps this class to the 'leave_approvals' table

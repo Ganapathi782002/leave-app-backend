@@ -1,4 +1,3 @@
-// leave-app-backend-ts/src/controllers/managerController.ts
 import { Request, Response, NextFunction, RequestHandler } from "express"; // Import RequestHandler
 import { AppDataSource } from "../data-source";
 import { User } from "../entity/User";
@@ -17,11 +16,6 @@ export interface AuthenticatedRequest extends Request { // Export this interface
 }
 
 export class ManagerController {
-
-    /**
-     * Fetches pending leave requests for the authenticated manager's direct reports.
-     */
-    // Use RequestHandler and explicitly type the async function's return
     getPendingLeaveRequests: RequestHandler<any, any, any, any> = async (
         req: AuthenticatedRequest,
         res: Response,
@@ -31,7 +25,7 @@ export class ManagerController {
         if (!req.user) {
             // Although authorizeRole should prevent this, it's good defensive programming
             res.status(401).json({ message: "User not authenticated." });
-            return; // <-- Explicitly return void after sending response
+            return;
         }
 
         const managerId = req.user.user_id;
@@ -77,21 +71,13 @@ export class ManagerController {
                 .orderBy("leave.applied_at", "ASC")
                 .getMany();
 
-            // TODO: Calculate working days for each request here before sending response?
-            // Add the working_days_count to each request object in the pendingRequests array
-
             res.status(200).json(pendingRequests);
             // <-- No return needed here, implicitly returns Promise<void> after res.json()
 
         } catch (error) {
             console.error("Error fetching pending leave requests:", error);
             // Pass the error to the Express error handling middleware
-            next(error); // Important: Call next with the error
-            // <-- No return needed here after calling next(error), implicitly returns Promise<void>
+            next(error);
         }
     }
-
-    // TODO: Implement approveLeave and rejectLeave methods here later
-    // approveLeave: RequestHandler<any, any, any, any> = async (req, res, next): Promise<void> => { ... }
-    // rejectLeave: RequestHandler<any, any, any, any> = async (req, res, next): Promise<void> => { ... }
 }

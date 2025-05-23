@@ -1,25 +1,15 @@
-// my-leave-app-backend/src/middleware/authMiddleware.ts
-import { Request, Response, NextFunction } from "express"; // Standard Express types
+import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
-
-// Ensure AuthenticatedRequest is defined and accessible (e.g., imported or in a global .d.ts)
-// If you exported it from managerController, import it here:
-// If you defined it here and added 'export', then no extra import needed here
-// Assuming it's defined and exported below:
 
 const jwtSecret = process.env.JWT_SECRET || "your_super_secret_jwt_key"; // TODO: Use a strong secret in production
 
-// --- Define and EXPORT the AuthenticatedRequest interface here ---
 export interface AuthenticatedRequest extends Request {
-  // <-- Ensure 'export' is here
   user?: {
-    // Adjust based on your JWT payload structure
     user_id: number;
     role_id: number;
     [key: string]: any; // Allow for other properties
   };
 }
-// --- End AuthenticatedRequest definition ---
 
 // Middleware function to protect routes
 // Use the standard Express middleware signature and explicitly declare void return
@@ -28,7 +18,6 @@ const protect = (
   res: Response,
   next: NextFunction
 ): void => {
-  // <-- Explicitly declare return type as void
 
   let token; // Check for token in Authorization header (Bearer token)
 
@@ -38,7 +27,7 @@ const protect = (
   ) {
     try {
       // Get token from header (remove "Bearer ")
-      token = req.headers.authorization.split(" ")[1]; // Verify token using callback
+      token = req.headers.authorization.split(" ")[1];
 
       jwt.verify(token, jwtSecret, (err, decoded) => {
         if (err) {

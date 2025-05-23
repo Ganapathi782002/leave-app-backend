@@ -1,4 +1,3 @@
-// leave-app-backend-ts/src/entity/Leave.ts
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -9,7 +8,7 @@ import {
 } from "typeorm";
 import { User } from "./User";
 import { LeaveType } from "./LeaveType";
-import { LeaveApproval } from "./LeaveApproval";// <-- Import the new entity
+import { LeaveApproval } from "./LeaveApproval";
 
 // Define the possible values for the status ENUM
 export enum LeaveStatus {
@@ -68,7 +67,7 @@ export class Leave {
 
   @ManyToOne(() => LeaveType, (leaveType) => leaveType.leaves)
   @JoinColumn({ name: "type_id" })
-  leaveType!: LeaveType; // --- ADD THIS One-to-Many relationship with LeaveApproval --- // A Leave request can have many approval records // The inverse side on the LeaveApproval entity is the 'leave' property
+  leaveType!: LeaveType;// A Leave request can have many approval records // The inverse side on the LeaveApproval entity is the 'leave' property
 
   @ManyToOne(() => User, { createForeignKeyConstraints: false }) // Adjust options based on your DB constraints
   @JoinColumn({ name: "processed_by_id" })

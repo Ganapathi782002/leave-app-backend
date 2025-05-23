@@ -1,4 +1,3 @@
-// leave-app-backend-ts/src/entity/User.ts
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -77,5 +76,4 @@ export class User {
   leaveBalances!: LeaveBalance[];
     leaveApprovalsTaken: any;
 
-  // We will add a relationship to LeaveApproval entity later if needed for approver history
 }

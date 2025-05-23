@@ -1,4 +1,3 @@
-// leave-app-backend-ts/src/entity/Role.ts
 import { Entity, Column, OneToMany, PrimaryGeneratedColumn } from "typeorm";
 import { User } from "./User"; // Import related entity
 

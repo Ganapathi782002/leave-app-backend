@@ -1,6 +1,4 @@
-// leave-app-backend-ts/src/routes/leaveRoutes.ts
 import express, { RequestHandler } from "express";
-// Keep differenceInCalendarDays if you use it elsewhere, otherwise remove
 import { Brackets, In } from "typeorm";
 
 import { AppDataSource } from "../data-source";
@@ -30,8 +28,6 @@ const leaveRepository = AppDataSource.getRepository(Leave);
 const userRepository = AppDataSource.getRepository(User);
 const leaveApprovalRepository = AppDataSource.getRepository(LeaveApproval);
 
-// Helper function to calculate calendar days of leave (includes weekends/holidays)
-// Keep this if you need calendar days for display purposes, otherwise remove
 const calculateCalendarLeaveDays = (startDate: Date, endDate: Date): number => {
   // Accept Date objects
   if (startDate > endDate) {
@@ -53,7 +49,6 @@ const areDateRangesOverlapping = (
   return start1 <= end2 && end1 >= start2;
 };
 
-// --- Helper function to calculate WORKING days (excluding weekends) ---
 const calculateWorkingDays = (startDate: Date, endDate: Date): number => {
   let count = 0;
   const currentDate = new Date(startDate.getTime()); // Create a mutable copy // Loop through each day from start_date to end_date
@@ -70,7 +65,6 @@ const calculateWorkingDays = (startDate: Date, endDate: Date): number => {
 
   return count;
 };
-// --- End Helper ---
 
 // Interfaces for request and response bodies
 interface ApplyLeaveRequestBody {
@@ -98,7 +92,7 @@ interface UpdateLeaveStatusSuccessResponse {
   newStatus: LeaveStatus;
 }
 
-interface LeaveDetailsResponse extends Leave {} // Assuming the response is the Leave entity itself
+interface LeaveDetailsResponse extends Leave {}
 
 interface ErrorResponse {
   message: string;
@@ -115,19 +109,18 @@ interface CalendarEventResponse {
   status: string;
 }
 
-// --- GET /api/leaves/types - Get available leave types (Protected Route) ---
 const getLeaveTypesHandler: RequestHandler<
   {}, // Req Params
-  LeaveType[] | ErrorResponse, // Res Body
-  {}, // Req Body
-  {} // Req Query
+  LeaveType[] | ErrorResponse,
+  {}, 
+  {} 
 > = async (req: AuthenticatedRequest, res): Promise<void> => {
   const userId = req.user?.user_id; // Get user ID from token
   const userRoleId = req.user?.role_id; // Get user Role ID from token
 
-  console.log(
-    `--- Inside getLeaveTypesHandler for User ID: ${userId}, Role ID: ${userRoleId} ---`
-  ); // Log handler entry // Defensive check if user or role info is missing after protect middleware
+  // console.log(
+  //   `--- Inside getLeaveTypesHandler for User ID: ${userId}, Role ID: ${userRoleId} ---`
+  // ); // Log handler entry // Defensive check if user or role info is missing after protect middleware
 
   if (!userId || userRoleId === undefined) {
     console.warn(
@@ -145,10 +138,10 @@ const getLeaveTypesHandler: RequestHandler<
     const allLeaveTypes = await leaveTypeRepository.find({
       order: { name: "ASC" },
     });
-    console.log(
-      "getLeaveTypesHandler: Fetched all leave types:",
-      allLeaveTypes.map((lt) => ({ id: lt.type_id, name: lt.name }))
-    ); // Log all fetched types with ID/Name
+    // console.log(
+    //   "getLeaveTypesHandler: Fetched all leave types:",
+    //   allLeaveTypes.map((lt) => ({ id: lt.type_id, name: lt.name }))
+    // ); // Log all fetched types with ID/Name
 
     let applyableLeaveTypes: LeaveType[] = [];
 
@@ -157,19 +150,19 @@ const getLeaveTypesHandler: RequestHandler<
     if (userRoleId !== ADMIN_ROLE_ID) {
       // Use the IMPORTED roleInitialBalances mapping here
       const rulesForRole = roleInitialBalances[userRoleId];
-      console.log(
-        `getLeaveTypesHandler: Rules found in roleInitialBalances for Role ID ${userRoleId}:`,
-        rulesForRole
-      ); // Log rules for the role
+      // console.log(
+      //   `getLeaveTypesHandler: Rules found in roleInitialBalances for Role ID ${userRoleId}:`,
+      //   rulesForRole
+      // ); // Log rules for the role
 
       // Get the list of leave type names allowed for this role based on the mapping
       const allowedLeaveTypeNames = (rulesForRole || []).map(
         (rule) => rule.leaveTypeName
       );
-      console.log(
-        `getLeaveTypesHandler: Allowed leave type names derived from rules for Role ID ${userRoleId}:`,
-        allowedLeaveTypeNames
-      ); // Log allowed names
+      // console.log(
+      //   `getLeaveTypesHandler: Allowed leave type names derived from rules for Role ID ${userRoleId}:`,
+      //   allowedLeaveTypeNames
+      // ); // Log allowed names
 
       // Filter the fetched leave types to include only those whose name is in the allowed list
       applyableLeaveTypes = allLeaveTypes.filter((type) => {
@@ -178,23 +171,23 @@ const getLeaveTypesHandler: RequestHandler<
         return isApplyable;
       });
 
-      console.log(
-        `getLeaveTypesHandler: Filtered applyable leave types for Role ID ${userRoleId}:`,
-        applyableLeaveTypes.map((lt) => ({ id: lt.type_id, name: lt.name }))
-      ); // Log filtered types
+      // console.log(
+      //   `getLeaveTypesHandler: Filtered applyable leave types for Role ID ${userRoleId}:`,
+      //   applyableLeaveTypes.map((lt) => ({ id: lt.type_id, name: lt.name }))
+      // ); // Log filtered types
     } else {
       // For Admin role, they typically don't apply for leave this way.
       // Returning an empty list is suitable for the 'Apply Leave' page for Admins.
       applyableLeaveTypes = [];
-      console.log(
-        `getLeaveTypesHandler: User is Admin (Role ID ${userRoleId}). Returning empty list for applyable types.`
-      ); // Log Admin case
+      // console.log(
+      //   `getLeaveTypesHandler: User is Admin (Role ID ${userRoleId}). Returning empty list for applyable types.`
+      // ); // Log Admin case
     } // Send the filtered list of applyable leave types back
 
     res.status(200).json(applyableLeaveTypes);
-    console.log(
-      `getLeaveTypesHandler: Sent ${applyableLeaveTypes.length} applyable leave types.`
-    ); // Log count of sent types
+    // console.log(
+    //   `getLeaveTypesHandler: Sent ${applyableLeaveTypes.length} applyable leave types.`
+    // ); // Log count of sent types
   } catch (error) {
     console.error(
       `getLeaveTypesHandler: Error fetching leave types for user ${userId}:`,
@@ -208,14 +201,11 @@ const getLeaveTypesHandler: RequestHandler<
 
 router.get("/types", protect, getLeaveTypesHandler);
 
-// --- POST /api/leaves - Apply for Leave (Protected Route) ---
-// In src/routes/leaveRoutes.ts
-// --- POST /api/leaves - Apply for Leave (Protected Route) ---
 const applyLeaveHandler: RequestHandler<
   {}, // Req Params
-  ApplyLeaveSuccessResponse | ErrorResponse, // Res Body
-  ApplyLeaveRequestBody, // Req Body
-  {} // Req Query
+  ApplyLeaveSuccessResponse | ErrorResponse,
+  ApplyLeaveRequestBody,
+  {}
 > = async (req: AuthenticatedRequest, res): Promise<void> => {
   const user_id = req.user?.user_id;
   const user_role_id = req.user?.role_id;
@@ -304,11 +294,10 @@ const applyLeaveHandler: RequestHandler<
         .json({ message: "Leave duration must be at least one day" });
       return;
     }
-    console.log(
-      `User ${user_id} applying for ${requestedDays} calendar days of ${leaveTypeName} (Type ID: ${selectedTypeId})`
-    );
+    // console.log(
+    //   `User ${user_id} applying for ${requestedDays} calendar days of ${leaveTypeName} (Type ID: ${selectedTypeId})`
+    // );
 
-    // --- NEW: Overlap Validation Check ---
     // Find any existing Pending or Approved leaves for this user
     const existingLeaves = await leaveRepository.find({
       where: {
@@ -341,11 +330,11 @@ const applyLeaveHandler: RequestHandler<
         )
       ) {
         // Overlap found! Return an error response
-        console.log(
-          `Overlap detected for user ${user_id}: New leave ${startDateObj.toISOString()} to ${endDateObj.toISOString()} overlaps with existing leave ${existingStartDate.toISOString()} to ${existingEndDate.toISOString()} (ID: ${
-            existingLeave.leave_id
-          })`
-        );
+        // console.log(
+        //   `Overlap detected for user ${user_id}: New leave ${startDateObj.toISOString()} to ${endDateObj.toISOString()} overlaps with existing leave ${existingStartDate.toISOString()} to ${existingEndDate.toISOString()} (ID: ${
+        //     existingLeave.leave_id
+        //   })`
+        // );
         res.status(400).json({
           message: `Your requested leave dates (${startDateObj.toLocaleDateString()} - ${endDateObj.toLocaleDateString()}) overlap with an existing leave request (Status: ${
             existingLeave.status
@@ -354,10 +343,9 @@ const applyLeaveHandler: RequestHandler<
         return; // Stop processing and return the error
       }
     }
-    console.log(
-      `No overlap detected for user ${user_id}. Proceeding with application.`
-    ); // --- NEW: Role-based Leave Type Check --- // Assuming Interns (ROLE_ID 4) can ONLY apply for Loss of Pay (need LeaveType ID for this) // Let's assume Loss of Pay has type_id 5 for this example - adjust if different
-    // --- End Overlap Validation Check ---
+    // console.log(
+    //   `No overlap detected for user ${user_id}. Proceeding with application.`
+    // );
 
     const allowedLeaveTypeNamesForRole = (
       roleInitialBalances[user_role_id] || []
@@ -374,9 +362,9 @@ const applyLeaveHandler: RequestHandler<
         .json({ message: `You cannot apply for '${leaveTypeName}' leave.` });
       return;
     }
-    console.log(
-      `User ${user_id} (Role ID: ${user_role_id}) applying for '${leaveTypeName}' (Type ID: ${selectedTypeId}). This type is allowed for this role.`
-    );
+    // console.log(
+    //   `User ${user_id} (Role ID: ${user_role_id}) applying for '${leaveTypeName}' (Type ID: ${selectedTypeId}). This type is allowed for this role.`
+    // );
 
     // Add checks for other roles if certain leave types are restricted (e.g., only Managers can apply for Sabbatical) // --- End Role-based Leave Type Check --- // --- Modified: Check leave balance based on role and leave type --- // Only check balance if it's a balance-based leave type AND the user is NOT an Intern (or other roles that bypass balance checks)
     if (is_balance_based && user_role_id !== INTERN_ROLE_ID) {
@@ -410,11 +398,11 @@ const applyLeaveHandler: RequestHandler<
         });
         return;
       }
-      console.log(
-        `Balance check passed for non-Intern. Available: ${availableDays.toFixed(
-          2
-        )}, Requested: ${requestedDays.toFixed(2)}`
-      );
+      // console.log(
+      //   `Balance check passed for non-Intern. Available: ${availableDays.toFixed(
+      //     2
+      //   )}, Requested: ${requestedDays.toFixed(2)}`
+      // );
     } else if (is_balance_based && user_role_id === INTERN_ROLE_ID) {
       // Interns should not be applying for balance-based leave types other than LoP (handled by the check above)
       // If they somehow reach here trying to apply for balance-based leave, it's an error
@@ -423,10 +411,10 @@ const applyLeaveHandler: RequestHandler<
       });
       return;
     } else if (!is_balance_based) {
-      console.log(
-        `${leaveTypeName} is not balance-based. Skipping balance check.`
-      ); // Loss of Pay (if it's not balance-based) will fall here and bypass balance check, which is correct for Interns.
-    } // --- End Modified Leave Balance Check --- // --- Modified: Determine initial status and required approval based on leave type property ---
+      // console.log(
+      //   `${leaveTypeName} is not balance-based. Skipping balance check.`
+      // ); // Loss of Pay (if it's not balance-based) will fall here and bypass balance check, which is correct for Interns.
+    }
 
     let initialStatus: LeaveStatus = LeaveStatus.Pending;
     let requiredApprovals: number = 1; // Default to 1 if requires_approval is true and no specific rule matches
@@ -434,30 +422,26 @@ const applyLeaveHandler: RequestHandler<
     if (!requires_approval) {
       initialStatus = LeaveStatus.Approved; // Auto-approve if leave type doesn't require approval (like Emergency Leave)
       requiredApprovals = 0; // 0 approvals needed if auto-approved
-      console.log(
-        `${leaveTypeName} does not require approval. Setting status to Approved.`
-      );
+      // console.log(
+      //   `${leaveTypeName} does not require approval. Setting status to Approved.`
+      // );
     } else {
-      // requires_approval is true
-      // Example rule: Leave requests > 5 *working* days require 2 approvals
-      // Use working days for approval rule if appropriate
-      // This rule could be based on working days or calendar days - clarify based on requirement
       const workingDaysForApprovalRule = calculateWorkingDays(
         startDateObj,
         endDateObj
       ); // Use working days for this rule example
       if (workingDaysForApprovalRule > 5) {
         requiredApprovals = 2;
-        console.log(
-          `Leave duration > 5 working days (${workingDaysForApprovalRule}) and requires approval. Setting required approvals to 2.`
-        );
+        // console.log(
+        //   `Leave duration > 5 working days (${workingDaysForApprovalRule}) and requires approval. Setting required approvals to 2.`
+        // );
       } else {
         requiredApprovals = 1;
-        console.log(
-          `Leave duration <= 5 working days (${workingDaysForApprovalRule}) and requires approval. Setting required approvals to 1.`
-        );
+        // console.log(
+        //   `Leave duration <= 5 working days (${workingDaysForApprovalRule}) and requires approval. Setting required approvals to 1.`
+        // );
       }
-    } // --- End Modified Initial Status Determination ---
+    }
     const newLeave = new Leave();
     newLeave.user_id = user_id;
     newLeave.type_id = selectedTypeId;
@@ -465,16 +449,8 @@ const applyLeaveHandler: RequestHandler<
     newLeave.end_date = endDateObj; // Store as Date objects
     newLeave.reason = reason;
     newLeave.status = initialStatus;
-    newLeave.required_approvals = requiredApprovals; // TODO: Add fields for submitted_by_id if different from user_id (e.g., HR submitting on behalf)
+    newLeave.required_approvals = requiredApprovals;
     const savedLeave = await leaveRepository.save(newLeave); // If auto-approved, immediately update balance and log approval?
-
-    // We decided to handle balance updates and logging in the status update handler.
-    // If initialStatus is Approved, the status update handler logic for Approved status
-    // would need to be called from here or a separate service/utility function.
-    // For now, we rely on the manager approval flow for Approved status balance/log.
-    // If you need auto-approval to trigger balance updates/logs immediately,
-    // you'll need to refactor this part to call the balance update/logging logic here
-    // when initialStatus is Approved.
 
     res.status(201).json({
       message: "Leave request submitted successfully",
@@ -503,10 +479,10 @@ const applyLeaveHandler: RequestHandler<
 router.post("/", protect, applyLeaveHandler);
 
 const getUserLeaveBalancesHandler: RequestHandler<
-  {}, // Req Params
+  {},
   any | ErrorResponse, // Res Body (replace 'any' with a specific interface for balances later)
-  {}, // Req Body
-  {} // Req Query
+  {},
+  {}
 > = async (req: AuthenticatedRequest, res): Promise<void> => {
   // This handler fetches leave balances for the logged-in user.
   const userId = req.user?.user_id; // Get user ID from the authenticated request
@@ -541,14 +517,13 @@ const getUserLeaveBalancesHandler: RequestHandler<
   }
 };
 
-router.get("/balance", protect, getUserLeaveBalancesHandler); // Register the /balance route
+router.get("/balance", protect, getUserLeaveBalancesHandler);
 
-// --- GET /api/leaves/my - Get authenticated user's leave requests (history) (Protected Route) ---
 const getUserLeaveHistoryHandler: RequestHandler<
   {}, // Req Params
   any | ErrorResponse, // Res Body (replace 'any' with a specific interface for leaves later)
-  {}, // Req Body
-  {} // Req Query
+  {},
+  {}
 > = async (req: AuthenticatedRequest, res): Promise<void> => {
   // This handler fetches all leave requests submitted by the logged-in user.
   const userId = req.user?.user_id; // Get user ID from the authenticated request
@@ -583,52 +558,11 @@ const getUserLeaveHistoryHandler: RequestHandler<
 
 router.get("/my", protect, getUserLeaveHistoryHandler);
 
-// --- GET /api/leaves/:id - Get details of a specific leave request by ID (Protected Route) ---
-// ... (getLeaveDetailsHandler and router.get('/:id', protect, ...)) ...
-
-// --- GET /api/leaves/pending-approvals - Get ALL pending leave requests (Protected, potentially Admin only) ---
-// This handler currently fetches *all* pending leaves regardless of who reports to whom.
-// Consider removing this route or repurposing it for Admin only.
-// The manager-specific fetch logic is in the /api/manager/pending-requests handler we created.
-// If you keep this route, you should apply the authorizeRole middleware here.
-/*
-const getAllPendingApprovalsHandler: RequestHandler< // ... (type annotations) ...
-    {}, Leave[] | ErrorResponse, {}, {}
-> = async (req: AuthenticatedRequest, res): Promise<void> => {
-    const user_role_id = req.user?.role_id; // Get user role
-
-    // --- Role Check (Admin Only) ---
-    if (user_role_id !== ADMIN_ROLE_ID) {
-        return res.status(403).json({ message: 'Forbidden: You do not have permission to view all pending approvals.' });
-    }
-    // --- End Role Check ---
-
-    try {
-        const pendingLeaves = await leaveRepository.find({
-            where: { status: LeaveStatus.Pending }, // Filter by Pending status
-            relations: ['user', 'leaveType'], // Eager load related User and LeaveType entities
-            order: { applied_at: 'ASC' } // Order by application date (oldest first for review)
-        });
-
-        res.status(200).json(pendingLeaves);
-        return;
-
-    } catch (error) {
-        console.error('Error fetching all pending leave requests:', error);
-        res.status(500).json({ message: 'Internal server error fetching all pending leave requests' });
-        return;
-    }
-};
-// router.get('/pending-approvals', protect, authorizeRole(['Admin']), getAllPendingApprovalsHandler); // Example with middleware
-*/
-
-// --- PUT /api/leaves/:id/status - Update leave request status (Protected, Manager/Admin Only) ---
-// Use RequestHandler type with explicit types for req params, req body, and res body
 const updateLeaveStatusHandler: RequestHandler<
   { id: string }, // Req Params (expecting leave ID in the URL)
-  UpdateLeaveStatusSuccessResponse | ErrorResponse, // Res Body
-  UpdateLeaveStatusRequestBody, // Req Body (expecting new status and optional comments)
-  {} // Req Query
+  UpdateLeaveStatusSuccessResponse | ErrorResponse,
+  UpdateLeaveStatusRequestBody,
+  {}
 > = async (req: AuthenticatedRequest, res): Promise<void> => {
   // Use AuthenticatedRequest type if available
 
@@ -642,13 +576,9 @@ const updateLeaveStatusHandler: RequestHandler<
   const { status } = req.body as UpdateLeaveStatusRequestBody; // Get the status sent by the manager ('Approved' or 'Rejected') from the request body
   const comments = req.body.comments || null; // Get comments from request body
 
-  console.log(
-    `--- User ${manager_user_id} (Role: ${manager_role_id}) attempting to update status of leave ${leaveId} via /api/leaves/status/:id ---`
-  );
-
-  // --- Role Check: Only Managers can use this specific handler logic ---
-  // This handler is ONLY for Managers approving/rejecting direct reports via this endpoint.
-  // Admins will use a separate endpoint (in adminRoutes.ts) or different logic flow if they use this endpoint.
+  // console.log(
+  //   `--- User ${manager_user_id} (Role: ${manager_role_id}) attempting to update status of leave ${leaveId} via /api/leaves/status/:id ---`
+  // );
   if (
     !loggedInUser ||
     !manager_user_id ||
@@ -666,14 +596,7 @@ const updateLeaveStatusHandler: RequestHandler<
     return;
   }
 
-  // Validate incoming status from request body (redundant if using strict TypeScript + interface, but defensive)
-  // The UpdateLeaveStatusRequestBody interface already restricts this to 'Approved' | 'Rejected'
-  // if (status !== 'Approved' && status !== 'Rejected') { ... validation code from before ... }
-
   try {
-    // Find the leave request. ONLY allow managers to update requests that are currently 'Pending'.
-    // Eager load 'user' to check the submitting user's role and manager_id.
-    // Eager load 'leaveType' for balance update logic.
     const leaveRequest = await leaveRepository.findOne({
       where: {
         leave_id: leaveId,
@@ -694,11 +617,6 @@ const updateLeaveStatusHandler: RequestHandler<
         });
       return;
     }
-
-    // --- Manager's Direct Report Authorization Check ---
-    // Verify that the user who submitted this leave request actually reports to the logged-in manager.
-    // This is a critical security check for a manager's approval endpoint.
-    // Assuming your User entity has a 'manager_id' column which is the user_id of their manager.
     if (
       !leaveRequest.user ||
       leaveRequest.user.manager_id !== manager_user_id
@@ -716,20 +634,17 @@ const updateLeaveStatusHandler: RequestHandler<
         });
       return;
     }
-    // --- End Direct Report Authorization Check ---
 
     // --- Implement the 5-Day Multi-Level Approval Logic for Manager Approval ---
     const submittingUserRoleId = leaveRequest.user.role_id; // Role of the user who submitted the leave
-    // Note: This handler is for Manager processing direct reports.
-    // Call your local calculateWorkingDays function here, passing Date objects
     const leaveDuration = calculateWorkingDays(
       new Date(leaveRequest.start_date),
       new Date(leaveRequest.end_date)
     ); // Use your LOCAL calculateWorkingDays
 
-    console.log(
-      `Manager ${manager_user_id}: Processing leave ${leaveId} (submitted by user role ${submittingUserRoleId}, duration ${leaveDuration} working days), Manager action: ${status}.`
-    );
+    // console.log(
+    //   `Manager ${manager_user_id}: Processing leave ${leaveId} (submitted by user role ${submittingUserRoleId}, duration ${leaveDuration} working days), Manager action: ${status}.`
+    // );
 
     let newStatus: LeaveStatus; // Variable to hold the determined new status
 
@@ -743,22 +658,20 @@ const updateLeaveStatusHandler: RequestHandler<
       ) {
         // It's a long leave from an Employee/Intern. Manager approval means it goes to Admin next.
         newStatus = LeaveStatus.Awaiting_Admin_Approval;
-        console.log(
-          `Leave ${leaveId} (long Employee/Intern leave) Manager approved -> status set to '${newStatus}'.`
-        );
+        // console.log(
+        //   `Leave ${leaveId} (long Employee/Intern leave) Manager approved -> status set to '${newStatus}'.`
+        // );
 
         // NO balance update here. Balance is updated only on final 'Approved' status by Admin.
       } else {
         // It's a short leave (<= 5 days) from an Employee/Intern.
         // Manager approval is the FINAL approval for these cases via this endpoint.
         newStatus = LeaveStatus.Approved;
-        console.log(
-          `Leave ${leaveId} (short Employee/Intern leave) Manager approved -> status set to '${newStatus}'.`
-        );
+        // console.log(
+        //   `Leave ${leaveId} (short Employee/Intern leave) Manager approved -> status set to '${newStatus}'.`
+        // );
 
         // --- Apply Leave Balance Logic here (as Manager approval is final for these cases) ---
-        // Copy your existing logic to update the used_days in the LeaveBalance table if balance-based.
-        // Use leaveRequest.user_id, leaveRequest.type_id, leaveRequest.start_date (for year), actualWorkingDaysOnLeave (which is leaveDuration here), leaveRequest.leaveType?.is_balance_based
         try {
           const leaveType = leaveRequest.leaveType; // Already eager loaded
 
@@ -792,9 +705,9 @@ const updateLeaveStatusHandler: RequestHandler<
               userBalance.used_days = updatedUsedDays.toFixed(2).toString(); // Update used days (store back as string)
 
               await leaveBalanceRepository.save(userBalance); // Save updated balance
-              console.log(
-                `Manager ${manager_user_id}: Updated leave balance for user ${leaveRequest.user_id}, type ${leaveRequest.type_id}, year ${leaveYear}. Used days now: ${userBalance.used_days}`
-              );
+              // console.log(
+              //   `Manager ${manager_user_id}: Updated leave balance for user ${leaveRequest.user_id}, type ${leaveRequest.type_id}, year ${leaveYear}. Used days now: ${userBalance.used_days}`
+              // );
             } else {
               console.error(
                 `Manager ${manager_user_id}: Leave balance not found for user ${leaveRequest.user_id}, type ${leaveRequest.type_id}, year ${leaveYear}. Cannot update balance.`
@@ -802,9 +715,9 @@ const updateLeaveStatusHandler: RequestHandler<
               // Log error, decide how to handle. For now, proceed without balance update.
             }
           } else {
-            console.log(
-              `Manager ${manager_user_id}: Leave type ${leaveType?.name} is not balance-based. No balance update needed for leave ${leaveId}.`
-            );
+            // console.log(
+            //   `Manager ${manager_user_id}: Leave type ${leaveType?.name} is not balance-based. No balance update needed for leave ${leaveId}.`
+            // );
           }
         } catch (balanceError: any) {
           // Explicitly type balanceError
@@ -820,9 +733,9 @@ const updateLeaveStatusHandler: RequestHandler<
     } else if (status === "Rejected") {
       // The manager is REJECTING the request. This is a final status.
       newStatus = LeaveStatus.Rejected;
-      console.log(
-        `Leave ${leaveId} rejected by Manager -> status set to '${newStatus}'.`
-      );
+      // console.log(
+      //   `Leave ${leaveId} rejected by Manager -> status set to '${newStatus}'.`
+      // );
       // No balance update needed for rejection
     } else {
       // Should not happen due to the interface type, but defensive
@@ -841,8 +754,6 @@ const updateLeaveStatusHandler: RequestHandler<
     leaveRequest.processed_by_id = manager_user_id; // Store the manager's user ID
     leaveRequest.processed_at = new Date(); // Record processing timestamp
 
-    // --- Log Approval/Rejection Action ---
-    // Log this action in the LeaveApproval table
     if (leaveApprovalRepository && manager_user_id) {
       try {
         const newApproval = new LeaveApproval();
@@ -869,9 +780,9 @@ const updateLeaveStatusHandler: RequestHandler<
         newApproval.comments = comments; // Include comments if provided
 
         await leaveApprovalRepository.save(newApproval);
-        console.log(
-          `Manager ${manager_user_id}: Action '${newApproval.action}' logged for leave ${leaveRequest.leave_id} by approver ${manager_user_id}.`
-        );
+        // console.log(
+        //   `Manager ${manager_user_id}: Action '${newApproval.action}' logged for leave ${leaveRequest.leave_id} by approver ${manager_user_id}.`
+        // );
       } catch (logError) {
         console.error(
           `Manager ${manager_user_id}: Error logging approval action for leave ${leaveId}:`,
@@ -884,15 +795,11 @@ const updateLeaveStatusHandler: RequestHandler<
         `Manager ${manager_user_id}: Could not log approval action for leave ${leaveId}. leaveApprovalRepository or manager_user_id missing.`
       );
     }
-    // --- End Log Approval/Rejection Action ---
-
-    // Save the leave request with the final determined status and processor details
-    // This is the SINGLE save operation after all logic is determined.
     await leaveRepository.save(leaveRequest);
 
-    console.log(
-      `Leave request ${leaveId} final status after Manager processing: ${leaveRequest.status}.`
-    );
+    // console.log(
+    //   `Leave request ${leaveId} final status after Manager processing: ${leaveRequest.status}.`
+    // );
 
     // Send success response back to the frontend
     res.status(200).json({
@@ -915,20 +822,13 @@ const updateLeaveStatusHandler: RequestHandler<
   }
 };
 
-// Use ':id' parameter in the route path
-// Consider applying authorizeRole middleware here for cleaner route definition
-// router.put('/status/:id', protect, authorizeRole(['Manager', 'Admin']), updateLeaveStatusHandler); // Example with middleware
 router.put("/status/:id", protect, updateLeaveStatusHandler); // Using inline role check for now
 
-// TODO: Add other leave-related routes here later (e.g., Admin routes for managing types/balances)
-// In src/routes/leaveRoutes.ts, add this code block
-
-// --- PUT /api/leaves/:id/cancel - Cancel a leave request (Protected Route) ---
 const cancelLeaveHandler: RequestHandler<
   { id: string }, // Expect leave ID in URL params
   UpdateLeaveStatusSuccessResponse | ErrorResponse, // Response body
-  {}, // No request body needed for this action
-  {} // No query parameters
+  {},
+  {}
 > = async (req: AuthenticatedRequest, res): Promise<void> => {
   // Ensure the user is authenticated and has a user ID
   const userId = req.user?.user_id;
@@ -976,24 +876,7 @@ const cancelLeaveHandler: RequestHandler<
     const oldStatus = leaveRequest.status; // Should be 'Pending' based on check above
     leaveRequest.status = LeaveStatus.Cancelled; // Save the updated leave request
 
-    const cancelledLeave = await leaveRepository.save(leaveRequest); // TODO: Add logic here if cancelling a PENDING leave should revert any 'reserved' balance // (You might implement balance reservation when applying later) // --- Log Cancellation Action (Optional but recommended) --- // Send success response
-
-    // If you allow cancelling auto-approved leaves, you'd need balance reversion logic here too.
-    // For now, cancelling from Pending doesn't impact used_days.
-
-    // You could log this in the leave_approvals table with an 'Cancelled' action by the user themselves
-    // Example (requires ApprovalAction enum update and LeaveApproval entity/repo):
-    /*
-         if (leaveApprovalRepository) {
-             const newApprovalLog = new LeaveApproval();
-             newApprovalLog.leave_id = cancelledLeave.leave_id;
-             newApprovalLog.approver_id = userId; // User who cancelled
-             newApprovalLog.action = ApprovalAction.Cancelled; // Assuming you add 'Cancelled' to ApprovalAction enum
-             newApprovalLog.comments = comments || 'Cancelled by employee'; // Add comments if needed
-             await leaveApprovalRepository.save(newApprovalLog);
-             console.log(`Cancellation action logged for leave ${cancelledLeave.leave_id} by user ${userId}`);
-         }
-        */
+    const cancelledLeave = await leaveRepository.save(leaveRequest);
 
     res.status(200).json({
       message: `Leave request ${leaveId} cancelled successfully.`,
@@ -1011,14 +894,13 @@ const cancelLeaveHandler: RequestHandler<
 };
 
 // Register the new route using a PUT request with the leave ID parameter
-router.put("/my/:id/cancel", protect, cancelLeaveHandler); // Note: Using '/my/:id/cancel' path under '/api/leaves' -> /api/leaves/my/:id/cancel
+router.put("/my/:id/cancel", protect, cancelLeaveHandler);
 
-// --- NEW ENDPOINT FOR LEAVE AVAILABILITY CALENDAR ---
 const getLeaveAvailabilityHandler: RequestHandler<
     {}, // Req Params
-    CalendarEventResponse[] | ErrorResponse, // Res Body
-    {}, // Req Body
-    {} // Req Query
+    CalendarEventResponse[] | ErrorResponse,
+    {},
+    {} 
 > = async (req: AuthenticatedRequest, res): Promise<void> => {
     const user = req.user;
 
@@ -1090,13 +972,6 @@ const getLeaveAvailabilityHandler: RequestHandler<
                     });
                 }
             }));
-
-            // Special case: If an employee/intern has no manager and no teammates to view (i.e., they are a top-level employee without reports, or the only employee),
-            // the `Brackets` will only contain `user.user_id = :currentUserId`.
-            // This is generally desired: they should at least see their own approved leaves.
-            // If the intent is for them to see *nothing* if they are not part of a team/manager structure,
-            // you might add an `if` around the `andWhere(new Brackets(...))` and add `queryBuilder.andWhere("1 = 0")` instead.
-            // But the current logic (seeing own leaves) is usually more practical.
 
         } else {
             res.status(403).json({ message: "Forbidden: Your role does not permit viewing this calendar." });
