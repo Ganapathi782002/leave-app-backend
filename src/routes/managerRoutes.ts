@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { ManagerController } from "../controllers/managerController";
 import protect from "../middleware/authMiddleware";
-import { authorizeRole } from "../middleware/roleMiddleware"; // Assuming authorizeRole is a named export factory
+import { authorizeRole } from "../middleware/roleMiddleware";
 
 
 const router = Router();

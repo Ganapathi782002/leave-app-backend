@@ -1,9 +1,8 @@
 import { Entity, Column, OneToMany, PrimaryGeneratedColumn } from "typeorm";
-import { User } from "./User"; // Import related entity
+import { User } from "./User";
 
 @Entity("roles")
 export class Role {
-  // --- Change PrimaryColumn to PrimaryGeneratedColumn if using AUTO_INCREMENT in DB ---
   @PrimaryGeneratedColumn({ type: "int" }) // Use PrimaryGeneratedColumn for auto-incrementing PK
   role_id!: number;
 
