@@ -1,32 +1,29 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 
-const jwtSecret = process.env.JWT_SECRET || "your_super_secret_jwt_key"; // TODO: Use a strong secret in production
+const jwtSecret = process.env.JWT_SECRET || "your_super_secret_jwt_key";
 
 export interface AuthenticatedRequest extends Request {
   user?: {
     user_id: number;
     role_id: number;
-    [key: string]: any; // Allow for other properties
+    [key: string]: any;
   };
 }
 
-// Middleware function to protect routes
-// Use the standard Express middleware signature and explicitly declare void return
 const protect = (
-  req: Request, // Use standard Request type
+  req: Request,
   res: Response,
   next: NextFunction
 ): void => {
 
-  let token; // Check for token in Authorization header (Bearer token)
+  let token;
 
   if (
     req.headers.authorization &&
     req.headers.authorization.startsWith("Bearer")
   ) {
     try {
-      // Get token from header (remove "Bearer ")
       token = req.headers.authorization.split(" ")[1];
 
       jwt.verify(token, jwtSecret, (err, decoded) => {
@@ -38,8 +35,6 @@ const protect = (
             .json({ message: "Not authorized, token failed" });
         }
 
-        // Cast decoded payload and attach to the request object
-        // Use the AuthenticatedRequest type via casting
         (req as AuthenticatedRequest).user =
           decoded as AuthenticatedRequest["user"]; // Safer casting
 
@@ -47,16 +42,14 @@ const protect = (
         next();
       });
     } catch (error) {
-      console.error("Error processing token:", error); // Catch errors *before* jwt.verify callback
+      console.error("Error processing token:", error);
       res
         .status(500)
         .json({ message: "Internal server error during token processing" });
     }
   } else {
-    // If no token is found in the header
     res.status(401).json({ message: "Not authorized, no token" });
   }
 };
 
-// Export the middleware function as default
 export default protect;

@@ -1,36 +1,31 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from "typeorm";
-import { Leave } from "./Leave"; // Import related entities
+import { Leave } from "./Leave";
 import { LeaveBalance } from "./LeaveBalance";
 
-@Entity("leave_types") // Maps this class to the 'leave_types' table
+@Entity("leave_types")
 export class LeaveType {
-  // Use 'export' keyword
 
   @PrimaryGeneratedColumn({ type: "int" })
-    type_id!: number; // TypeScript type: number
+    type_id!: number;
 
   @Column({ type: "varchar", length: 50, unique: true })
-    name!: string; // TypeScript type: string
+    name!: string;
 
   @Column({ type: "varchar", length: 255, nullable: true })
-    description!: string | null; // TypeScript type: string or null
+    description!: string | null;
 
   @Column({ type: "boolean", default: true })
-    requires_approval!: boolean; // TypeScript type: boolean
+    requires_approval!: boolean;
 
   @Column({ type: "boolean", default: true })
-    is_balance_based!: boolean; // TypeScript type: boolean
+    is_balance_based!: boolean;
 
   @Column({ type: "timestamp", default: () => "CURRENT_TIMESTAMP" })
-    created_at!: Date; // TypeScript type: Date
+    created_at!: Date;
 
-  // Define the One-to-Many relationship with Leave
-  // The inverse side on the Leave entity is the 'leaveType' property
   @OneToMany(() => Leave, (leave) => leave.leaveType)
-    leaves!: Leave[]; // TypeScript type: Array of Leave entities
+    leaves!: Leave[];
 
-  // Define the One-to-Many relationship with LeaveBalance
-  // The inverse side on the LeaveBalance entity is the 'leaveType' property
   @OneToMany(() => LeaveBalance, (leaveBalance) => leaveBalance.leaveType)
-    leaveBalances!: LeaveBalance[]; // TypeScript type: Array of LeaveBalance entities
+    leaveBalances!: LeaveBalance[];
 }

@@ -1,13 +1,13 @@
 export const calculateWorkingDays = (startDate: Date, endDate: Date): number => {
   let count = 0;
-  const currentDate = new Date(startDate.getTime()); // Create a mutable copy // Loop through each day from start_date to end_date
+  const currentDate = new Date(startDate.getTime());
 
   while (currentDate <= endDate) {
-    const dayOfWeek = currentDate.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday // Check if the current day is NOT a Saturday (6) and NOT a Sunday (0)
+    const dayOfWeek = currentDate.getDay();
 
     if (dayOfWeek !== 0 && dayOfWeek !== 6) {
-      count++; // It's a working day
-    } // Move to the next day
+      count++;
+    }
 
     currentDate.setDate(currentDate.getDate() + 1);
   }
