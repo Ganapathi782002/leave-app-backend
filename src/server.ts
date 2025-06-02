@@ -8,6 +8,7 @@ import { router as authRoutes } from "./routes/authRoutes";
 import { router as leaveRoutes } from "./routes/leaveRoutes";
 import { router as managerRoutes } from "./routes/managerRoutes";
 import { adminRoutes } from "./routes/adminRoutes";
+import teamRoutes from "./routes/teamRoutes";
 
 dotenv.config({ path: path.resolve(__dirname, "../../.env") });
 
@@ -24,12 +25,12 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 
 AppDataSource.initialize()
   .then(() => {
-
     // Mounting routers
     app.use("/api/auth", authRoutes);
     app.use("/api/leaves", leaveRoutes);
     app.use("/api/manager", managerRoutes);
-    app.use("/api/admin", adminRoutes); 
+    app.use("/api/admin", adminRoutes);
+    app.use("/api/team", teamRoutes);
 
     // Basic route for testing server
     app.get("/", (req, res) => {
@@ -41,5 +42,5 @@ AppDataSource.initialize()
     });
   })
   .catch((error) =>
-    console.error("Error during TypeORM initialization:", error)
+    console.error("Error during TypeORM initialization:", error),
   );

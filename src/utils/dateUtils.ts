@@ -1,4 +1,7 @@
-export const calculateWorkingDays = (startDate: Date, endDate: Date): number => {
+export const calculateWorkingDays = (
+  startDate: Date,
+  endDate: Date,
+): number => {
   let count = 0;
   const currentDate = new Date(startDate.getTime());
 
@@ -13,4 +16,4 @@ export const calculateWorkingDays = (startDate: Date, endDate: Date): number => 
   }
 
   return count;
-}
+};

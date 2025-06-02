@@ -11,12 +11,12 @@ import { AuthenticatedRequest } from "./authMiddleware";
  * @returns Express middleware function.
  */
 export const authorizeRole = (
-  allowedRoleNames: string[]
+  allowedRoleNames: string[],
 ): RequestHandler<any, any, any, any> => {
   return async (
     req: AuthenticatedRequest,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ): Promise<void> => {
     if (!req.user) {
       res.status(401).json({ message: "Authentication required." });
@@ -35,7 +35,7 @@ export const authorizeRole = (
 
       if (!userRole) {
         console.error(
-          `Role ID ${userRoleId} not found for user ${req.user.user_id}`
+          `Role ID ${userRoleId} not found for user ${req.user.user_id}`,
         );
         res
           .status(500)

@@ -15,7 +15,7 @@ export enum LeaveStatus {
   Approved = "Approved",
   Rejected = "Rejected",
   Cancelled = "Cancelled",
-  Awaiting_Admin_Approval = 'Awaiting_Admin_Approval',
+  Awaiting_Admin_Approval = "Awaiting_Admin_Approval",
 }
 
 @Entity("leaves")

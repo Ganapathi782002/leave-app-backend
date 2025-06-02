@@ -34,12 +34,11 @@ export class User {
   created_at!: Date;
 
   @Column({
-      type: "timestamp",
-      default: () => "CURRENT_TIMESTAMP",
-      onUpdate: "CURRENT_TIMESTAMP",
+    type: "timestamp",
+    default: () => "CURRENT_TIMESTAMP",
+    onUpdate: "CURRENT_TIMESTAMP",
   })
   updated_at!: Date;
-
 
   @ManyToOne(() => Role, (role) => role.users)
   @JoinColumn({ name: "role_id" })
@@ -56,7 +55,6 @@ export class User {
   leaves!: Leave[];
 
   @OneToMany(() => LeaveBalance, (leaveBalance) => leaveBalance.user)
-  leaveBalances!: LeaveBalance[];
-    leaveApprovalsTaken: any;
-
+  leaveBalances!: LeaveBalance[];
+  leaveApprovalsTaken: any;
 }

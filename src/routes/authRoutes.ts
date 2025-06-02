@@ -1,4 +1,4 @@
-import express, { Request, Response, Router, RequestHandler } from "express";
+import express, { Request, Response, RequestHandler } from "express";
 import bcrypt from "bcryptjs";
 
 import jwt from "jsonwebtoken";
@@ -31,6 +31,11 @@ interface AuthSuccessResponse {
     email: string;
     role_id: number;
     manager_id?: number | null;
+    manager?: {
+      user_id: number;
+      name: string;
+      email: string;
+    } | null;
   };
 }
 
@@ -63,12 +68,10 @@ const registerHandler: RequestHandler<
     role_id === undefined ||
     typeof role_id !== "number"
   ) {
-    res
-      .status(400)
-      .json({
-        message:
-          "All fields (name, email, password, role_id) are required and role_id must be a number",
-      });
+    res.status(400).json({
+      message:
+        "All fields (name, email, password, role_id) are required and role_id must be a number",
+    });
     return;
   }
 
@@ -99,11 +102,6 @@ const registerHandler: RequestHandler<
     newUser.role_id = role_id;
 
     const savedUser = await userRepository.save(newUser);
-
-    // Log the successful registration (optional)
-    // console.log(
-    //   `User registered successfully: ${savedUser.email} (ID: ${savedUser.user_id})`
-    // ); // --- Send Success Response --- // Respond with a 201 Created status and success message + user ID
 
     res.status(201).json({
       message: "User registered successfully",
@@ -137,6 +135,7 @@ const loginHandler: RequestHandler<
   try {
     const user = await userRepository.findOne({
       where: { email: email },
+      relations: ["manager"],
       select: ["user_id", "name", "email", "password_hash", "role_id"],
     });
 
@@ -155,7 +154,7 @@ const loginHandler: RequestHandler<
     const token = jwt.sign(
       { user_id: user.user_id, role_id: user.role_id },
       jwtSecret,
-      { expiresIn: "1h" }
+      { expiresIn: "1h" },
     );
 
     res.status(200).json({
@@ -166,6 +165,12 @@ const loginHandler: RequestHandler<
         name: user.name,
         email: user.email,
         role_id: user.role_id,
+        manager_id: user.manager_id,
+        manager: user.manager ? {
+          user_id: user.manager.user_id,
+          name: user.manager.name,
+          email: user.manager.email,
+        } : null,
       },
     });
     return;
@@ -189,13 +194,11 @@ router.get(
         user: req.user,
       });
     } else {
-      res
-        .status(401)
-        .json({
-          message: "Not authorized, user info missing after authentication",
-        });
+      res.status(401).json({
+        message: "Not authorized, user info missing after authentication",
+      });
     }
-  }
+  },
 );
 
 export { router };

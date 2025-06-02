@@ -11,12 +11,7 @@ export interface AuthenticatedRequest extends Request {
   };
 }
 
-const protect = (
-  req: Request,
-  res: Response,
-  next: NextFunction
-): void => {
-
+const protect = (req: Request, res: Response, next: NextFunction): void => {
   let token;
 
   if (
@@ -36,7 +31,7 @@ const protect = (
         }
 
         (req as AuthenticatedRequest).user =
-          decoded as AuthenticatedRequest["user"]; // Safer casting
+          decoded as AuthenticatedRequest["user"];
 
         // Call next middleware/route handler
         next();
