@@ -65,6 +65,13 @@ interface ErrorResponse {
   message: string;
 }
 
+interface UpdateUserRequestBody {
+    name?: string;
+    email?: string;
+    role_id?: number;
+    manager_id?: number | null;
+}
+
 interface GetUsersQueryParams extends ParsedQs {
   role_id?: string;
 }
@@ -496,6 +503,191 @@ const getUsersHandler: RequestHandler<
     return;
   }
 };
+
+const updateUserHandler: RequestHandler<
+    { userId: string }, 
+    UserResponse | ErrorResponse,
+    UpdateUserRequestBody,
+    {} 
+> = async (req: AuthenticatedRequest, res): Promise<void> => {
+    const loggedInAdmin = req.user;
+    if (loggedInAdmin?.role_id !== ADMIN_ROLE_ID) {
+        res.status(403).json({ message: "Forbidden: Insufficient privileges." });
+        return;
+    }
+
+    const userIdToEdit = parseInt(req.params.userId, 10);
+    if (isNaN(userIdToEdit)) {
+        res.status(400).json({ message: "Invalid user ID provided." });
+        return;
+    }
+    const { name, email, role_id, manager_id } = req.body;
+    if (name === undefined && email === undefined && role_id === undefined && manager_id === undefined) {
+        res.status(400).json({ message: "No update information provided." });
+        return;
+    }
+    
+    const queryRunner = AppDataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+        const userToUpdate = await queryRunner.manager.findOne(User, {
+            where: { user_id: userIdToEdit },
+            relations: ["role"],
+        });
+
+        if (!userToUpdate) {
+            await queryRunner.rollbackTransaction();
+            res.status(404).json({ message: "User not found." });
+            return;
+        }
+
+        const originalRoleId = userToUpdate.role_id;
+        if (name !== undefined) {
+            if (name.trim() === "") {
+                await queryRunner.rollbackTransaction();
+                res.status(400).json({ message: "Name cannot be empty." });
+                return;
+            }
+            userToUpdate.name = name.trim();
+        }
+
+        if (email !== undefined) {
+            const trimmedEmail = email.trim().toLowerCase();
+            if (!trimmedEmail || !/^\S+@\S+\.\S+$/.test(trimmedEmail)) {
+                await queryRunner.rollbackTransaction();
+                res.status(400).json({ message: "Valid email is required." });
+                return;
+            }
+            if (trimmedEmail !== userToUpdate.email.toLowerCase()) {
+                const existingUserWithNewEmail = await queryRunner.manager.findOne(User, {
+                    where: { email: trimmedEmail },
+                });
+                if (existingUserWithNewEmail && existingUserWithNewEmail.user_id !== userIdToEdit) {
+                    await queryRunner.rollbackTransaction();
+                    res.status(409).json({ message: "Email already in use by another account." });
+                    return;
+                }
+                userToUpdate.email = trimmedEmail;
+            }
+        }
+
+        if (role_id !== undefined && role_id !== originalRoleId) {
+            if (originalRoleId === ADMIN_ROLE_ID) {
+                await queryRunner.rollbackTransaction();
+                res.status(400).json({ message: "Administrator role cannot be changed via this endpoint." });
+                return;
+            }
+            if (role_id === ADMIN_ROLE_ID) {
+                await queryRunner.rollbackTransaction();
+                res.status(400).json({ message: "Cannot assign Administrator role via this endpoint." });
+                return;
+            }
+
+            const isValidTransition =
+                (originalRoleId === INTERN_ROLE_ID && role_id === EMPLOYEE_ROLE_ID) ||
+                (originalRoleId === EMPLOYEE_ROLE_ID && role_id === MANAGER_ROLE_ID);
+
+            if (!isValidTransition) {
+                await queryRunner.rollbackTransaction();
+                res.status(400).json({ 
+                    message: `Invalid role transition. Allowed: Intern->Employee, Employee->Manager. Attempted: ${originalRoleId} -> ${role_id}` 
+                });
+                return;
+            }
+
+            const roleEntity = await queryRunner.manager.findOne(Role, { where: { role_id } });
+            if (!roleEntity) {
+                await queryRunner.rollbackTransaction();
+                res.status(400).json({ message: "New role selected is invalid." });
+                return;
+            }
+            userToUpdate.role_id = role_id;
+            userToUpdate.role = roleEntity;
+        } else if (role_id !== undefined && role_id === originalRoleId) {
+             if (!userToUpdate.role || userToUpdate.role.role_id !== role_id) {
+                const roleEntity = await queryRunner.manager.findOne(Role, { where: { role_id } });
+                if (roleEntity) userToUpdate.role = roleEntity;
+            }
+        }
+
+
+        if (manager_id !== undefined) {
+            if (userToUpdate.role_id === MANAGER_ROLE_ID && manager_id !== null) {
+                await queryRunner.rollbackTransaction();
+                res.status(400).json({ message: "Managers cannot be assigned a manager via this endpoint (they should report to Admin or have no manager)." });
+                return;
+            }
+             if (userToUpdate.role_id === ADMIN_ROLE_ID && manager_id !== null) {
+                await queryRunner.rollbackTransaction();
+                res.status(400).json({ message: "Admins cannot be assigned a manager." });
+                return;
+            }
+
+            if (manager_id !== null) {
+                if (manager_id === userToUpdate.user_id) {
+                    await queryRunner.rollbackTransaction();
+                    res.status(400).json({ message: "User cannot be their own manager." });
+                    return;
+                }
+                const managerUser = await queryRunner.manager.findOne(User, { where: { user_id: manager_id } });
+                if (!managerUser) {
+                    await queryRunner.rollbackTransaction();
+                    res.status(400).json({ message: "Selected manager does not exist." });
+                    return;
+                }
+                if (managerUser.role_id !== MANAGER_ROLE_ID && managerUser.role_id !== ADMIN_ROLE_ID) {
+                    await queryRunner.rollbackTransaction();
+                    res.status(400).json({ message: "The selected user to be a manager does not have a 'Manager' or 'Admin' role." }); // Fixed
+                    return;
+                }
+            }
+            userToUpdate.manager_id = manager_id;
+        }
+
+        await queryRunner.manager.save(User, userToUpdate);
+        await queryRunner.commitTransaction();
+
+        const responseUserRole = userToUpdate.role || await queryRunner.manager.findOneBy(Role, {role_id: userToUpdate.role_id});
+        if (!responseUserRole) {
+            console.error("CRITICAL: Could not find role details for updated user for response after commit.");
+            res.status(200).json({
+                user_id: userToUpdate.user_id,
+                name: userToUpdate.name,
+                email: userToUpdate.email,
+                role_id: userToUpdate.role_id,
+                manager_id: userToUpdate.manager_id,
+                role: { role_id: userToUpdate.role_id, name: "Error: Role name not found" } // Fallback
+            });
+            return; 
+        }
+
+        const userResponse: UserResponse = {
+            user_id: userToUpdate.user_id,
+            name: userToUpdate.name,
+            email: userToUpdate.email,
+            role_id: userToUpdate.role_id,
+            manager_id: userToUpdate.manager_id,
+            role: {
+                role_id: responseUserRole.role_id,
+                name: responseUserRole.name,
+            }
+        };
+        res.status(200).json(userResponse);
+
+    } catch (error) {
+        if (queryRunner.isTransactionActive) {
+            await queryRunner.rollbackTransaction();
+        }
+        console.error(`Error updating user ${userIdToEdit}:`, error);
+        res.status(500).json({ message: "Internal server error while updating user." });
+    } finally {
+        await queryRunner.release();
+    }
+};
+
+router.put("/users/:userId",protect,updateUserHandler)
 
 const getAdminApprovalsHandler: RequestHandler<
   {},
