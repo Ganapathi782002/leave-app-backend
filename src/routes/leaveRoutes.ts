@@ -722,70 +722,127 @@ const updateLeaveStatusHandler: RequestHandler<
 
 router.put("/status/:id", protect, updateLeaveStatusHandler);
 
-const cancelLeaveHandler: RequestHandler<
-  { id: string },
-  UpdateLeaveStatusSuccessResponse | ErrorResponse,
-  {},
-  {}
+export const cancelLeaveHandler: RequestHandler<
+    { id: string },
+    UpdateLeaveStatusSuccessResponse | ErrorResponse,
+    {},
+    {}
 > = async (req: AuthenticatedRequest, res): Promise<void> => {
-  const userId = req.user?.user_id;
-  if (!userId) {
-    res.status(401).json({ message: "User not authenticated." });
-    return;
-  }
-
-  const leaveId = parseInt(req.params.id, 10);
-
-  if (isNaN(leaveId)) {
-    res.status(400).json({ message: "Invalid leave ID provided." });
-    return;
-  }
-
-  try {
-    const leaveRequest = await leaveRepository.findOne({
-      where: { leave_id: leaveId },
-    });
-
-    if (!leaveRequest) {
-      res.status(404).json({ message: "Leave request not found." });
-      return;
+    const userId = req.user?.user_id;
+    if (!userId) {
+        res.status(401).json({ message: "User not authenticated." });
+        return;
     }
 
-    if (leaveRequest.user_id !== userId) {
-      console.warn(
-        `User ${userId} attempted to cancel leave ID ${leaveId} which they do not own.`,
-      );
-      res.status(403).json({
-        message: "Forbidden: You can only cancel your own leave requests.",
-      });
-      return;
+    const leaveId = parseInt(req.params.id, 10);
+    if (isNaN(leaveId)) {
+        res.status(400).json({ message: "Invalid leave ID provided." });
+        return;
     }
 
-    if (leaveRequest.status !== LeaveStatus.Pending) {
-      res.status(400).json({
-        message: `Cannot cancel leave request with status '${leaveRequest.status}'. Only pending leaves can be cancelled.`,
-      });
-      return;
+    const queryRunner = AppDataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+        const leaveRequest = await queryRunner.manager.findOne(Leave, {
+            where: { leave_id: leaveId },
+            relations: ["user", "leaveType"],
+        });
+
+        if (!leaveRequest) {
+            await queryRunner.rollbackTransaction();
+            res.status(404).json({ message: "Leave request not found." });
+            return;
+        }
+
+        if (leaveRequest.user_id !== userId) {
+            console.warn(
+                `User ${userId} attempted to cancel leave ID ${leaveId} which they do not own (Owner: ${leaveRequest.user_id}).`
+            );
+            await queryRunner.rollbackTransaction();
+            res.status(403).json({
+                message: "Forbidden: You can only cancel your own leave requests.",
+            });
+            return;
+        }
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const leaveStartDate = new Date(leaveRequest.start_date);
+        leaveStartDate.setHours(0, 0, 0, 0);
+
+        const isPending = leaveRequest.status === LeaveStatus.Pending;
+        const isApprovedAndCancellable =
+            leaveRequest.status === LeaveStatus.Approved && today < leaveStartDate;
+
+        if (!isPending && !isApprovedAndCancellable) {
+            let message = `Cannot cancel leave request with status '${leaveRequest.status}'.`;
+            if (leaveRequest.status === LeaveStatus.Approved && today >= leaveStartDate) {
+                message = "Cannot cancel this leave: it is already active or has passed.";
+            } else if (leaveRequest.status !== LeaveStatus.Pending && leaveRequest.status !== LeaveStatus.Approved) {
+                message = `Only 'Pending' or 'Approved' (before start date) leaves can be cancelled. Current status: ${leaveRequest.status}`;
+            }
+            await queryRunner.rollbackTransaction();
+            res.status(400).json({ message });
+            return;
+        }
+
+        const oldStatus = leaveRequest.status;
+        leaveRequest.status = LeaveStatus.Cancelled;
+
+        await queryRunner.manager.save(Leave, leaveRequest);
+
+        if (oldStatus === LeaveStatus.Approved && leaveRequest.leaveType?.is_balance_based) {
+            const workingDaysToRevert = calculateWorkingDays(
+                new Date(leaveRequest.start_date),
+                new Date(leaveRequest.end_date)
+            );
+
+            if (workingDaysToRevert > 0) {
+                const leaveYear = new Date(leaveRequest.start_date).getFullYear();
+                const userBalance = await queryRunner.manager.findOne(LeaveBalance, {
+                    where: {
+                        user_id: leaveRequest.user_id,
+                        type_id: leaveRequest.type_id,
+                        year: leaveYear,
+                    },
+                });
+
+                if (userBalance) {
+                    const currentUsedDays = parseFloat(userBalance.used_days as string);
+                    const newUsedDays = currentUsedDays - workingDaysToRevert;
+                    userBalance.used_days = newUsedDays.toFixed(2).toString();
+                    const currentTotalDays = parseFloat(userBalance.total_days as string);
+                    userBalance.available_days = (currentTotalDays - newUsedDays).toFixed(2).toString();
+
+
+                    await queryRunner.manager.save(LeaveBalance, userBalance);
+                } else {
+                    console.error(
+                        `CRITICAL: LeaveBalance record not found for user ${leaveRequest.user_id}, type ${leaveRequest.type_id}, year ${leaveYear} during cancellation of approved leave ${leaveId}. Balance not reverted.`
+                    );
+                }
+            }
+        }
+
+        await queryRunner.commitTransaction();
+
+        res.status(200).json({
+            message: `Leave request ${leaveId} cancelled successfully.`,
+            leaveId: leaveRequest.leave_id,
+            newStatus: leaveRequest.status,
+        });
+
+    } catch (error) {
+        if (queryRunner.isTransactionActive) { // Check if transaction is active before trying to rollback
+            await queryRunner.rollbackTransaction();
+        }
+        console.error(`Error cancelling leave request ${leaveId}:`, error);
+        res.status(500).json({ message: "Internal server error cancelling leave request" });
+    } finally {
+        await queryRunner.release();
     }
-
-    const oldStatus = leaveRequest.status;
-    leaveRequest.status = LeaveStatus.Cancelled;
-
-    const cancelledLeave = await leaveRepository.save(leaveRequest);
-
-    res.status(200).json({
-      message: `Leave request ${leaveId} cancelled successfully.`,
-      leaveId: cancelledLeave.leave_id,
-      newStatus: cancelledLeave.status,
-    });
-    return;
-  } catch (error) {
-    console.error(`Error cancelling leave request ${leaveId}:`, error);
-    res
-      .status(500)
-      .json({ message: "Internal server error cancelling leave request" });
-    return;
-  }
 };
 
 router.put("/my/:id/cancel", protect, cancelLeaveHandler);
