@@ -76,11 +76,10 @@ interface GetUsersQueryParams extends ParsedQs {
   role_id?: string;
 }
 
-// Create an Express router instance for admin routes
 const router = express.Router();
 
 router.use((req: Request, res: Response, next: NextFunction) => {
-  next(); // Pass the request to the next middleware or route handler
+  next();
 });
 
 const calculateWorkingDays = (startDate: Date, endDate: Date): number => {
@@ -385,8 +384,7 @@ const getUsersHandler: RequestHandler<
   GetUsersQueryParams // Req Query: { role_id?: string }
 > = async (req: AuthenticatedRequest, res): Promise<void> => {
   const admin_user_id = req.user?.user_id;
-  const admin_user_role_id = req.user?.role_id; //console.log(`--- Admin user ${admin_user_id} accessing /api/admin/users ---`);
-  // If authentication failed or user info is missing (should be caught by protect, but defensive check)
+  const admin_user_role_id = req.user?.role_id;
 
   if (admin_user_id === undefined || admin_user_role_id === undefined) {
     res.status(401).json({ message: "Authentication failed." });
@@ -419,11 +417,9 @@ const getUsersHandler: RequestHandler<
     };
 
     if (filterRoleId !== undefined && !isNaN(filterRoleId)) {
-      // <-- Ensure it's a valid number
       findOptions.where = { role_id: filterRoleId };
       //             console.log(`Workspaceing users with Role ID filter: ${filterRoleId}`);
     } else if (roleIdParam !== undefined) {
-      // If role_id was provided but wasn't a valid number
       console.warn(
         `Admin user ${admin_user_id} provided invalid role_id query parameter: ${roleIdParam}`,
       );
@@ -432,7 +428,7 @@ const getUsersHandler: RequestHandler<
         .json({
           message:
             "Invalid role_id provided in query parameters. Must be a number.",
-        }); // Bad Request
+        });
       return;
     } else {
       //  console.log("Fetching all users (no role filter).");
@@ -658,7 +654,7 @@ const updateUserHandler: RequestHandler<
                 email: userToUpdate.email,
                 role_id: userToUpdate.role_id,
                 manager_id: userToUpdate.manager_id,
-                role: { role_id: userToUpdate.role_id, name: "Error: Role name not found" } // Fallback
+                role: { role_id: userToUpdate.role_id, name: "Error: Role name not found" }
             });
             return; 
         }

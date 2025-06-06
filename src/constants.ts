@@ -13,11 +13,11 @@ export const roleInitialBalances: {
   ],
   [MANAGER_ROLE_ID]: [
     // Role 3
-    { leaveTypeName: "Casual Leave", initialDays: 15 }, // Assuming same as Employee for applying
+    { leaveTypeName: "Casual Leave", initialDays: 15 }, //same as Employee for applying
     { leaveTypeName: "Sick Leave", initialDays: 15 },
   ],
   [INTERN_ROLE_ID]: [
     // Role 4
-    { leaveTypeName: "Loss of Pay", initialDays: 999999 },
+    { leaveTypeName: "Loss of Pay", initialDays: 999 },
   ],
 };

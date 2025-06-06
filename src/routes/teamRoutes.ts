@@ -1,4 +1,3 @@
-// src/routes/teamRoutes.ts
 import express, { Request, Response, RequestHandler } from "express";
 import protect, { AuthenticatedRequest } from "../middleware/authMiddleware";
 import { AppDataSource } from "../data-source";
@@ -7,7 +6,7 @@ import { LeaveBalance } from "../entity/LeaveBalance";
 import { Leave, LeaveStatus } from "../entity/Leave";
 import { Role } from "../entity/Role";
 import { In } from "typeorm";
-import { calculateWorkingDays } from "../utils/dateUtils"; // <--- NEW: Import your utility function
+import { calculateWorkingDays } from "../utils/dateUtils";
 
 const router = express.Router();
 
@@ -30,8 +29,6 @@ interface TeamMemberLeaveBalance {
 const MANAGER_ROLE_ID = 3;
 const EMPLOYEE_ROLE_ID = 2;
 const INTERN_ROLE_ID = 4;
-
-// Removed the getWorkingDays helper function from here
 
 const getMyTeamLeaveBalances: RequestHandler = async (req: AuthenticatedRequest, res: Response) => {
     try {
@@ -94,7 +91,6 @@ const getMyTeamLeaveBalances: RequestHandler = async (req: AuthenticatedRequest,
                 const totalDaysTakenByIntern = approvedLeaves.reduce((sum, leave) => {
                     const startDate = new Date(leave.start_date);
                     const endDate = new Date(leave.end_date);
-                    // <--- UPDATED: Use your imported calculateWorkingDays function
                     const workingDays = calculateWorkingDays(startDate, endDate);
                     return sum + workingDays;
                 }, 0);

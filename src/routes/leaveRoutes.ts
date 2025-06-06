@@ -16,7 +16,6 @@ import {
 } from "../constants";
 import moment from "moment";
 import protect, { AuthenticatedRequest } from "../middleware/authMiddleware";
-// Import the role middleware if you decide to use it here instead of inline check
 // import { authorizeRole } from '../middleware/roleMiddleware';
 
 const router: express.Router = express.Router();
@@ -676,9 +675,9 @@ const updateLeaveStatusHandler: RequestHandler<
         newApproval.leave_id = leaveRequest.leave_id;
         newApproval.approver_id = manager_user_id;
         if (newStatus === LeaveStatus.Awaiting_Admin_Approval) {
-          newApproval.action = ApprovalAction.Approved; // Log Manager's action as Approved
+          newApproval.action = ApprovalAction.Approved;
         } else if (newStatus === LeaveStatus.Approved) {
-          newApproval.action = ApprovalAction.Approved; // Log Manager's action as Approved
+          newApproval.action = ApprovalAction.Approved;
         } else if (newStatus === LeaveStatus.Rejected) {
           newApproval.action = ApprovalAction.Rejected;
         } else {
@@ -686,7 +685,7 @@ const updateLeaveStatusHandler: RequestHandler<
             `Manager ${manager_user_id}: Unexpected new status '${newStatus}' for logging leave ${leaveId}.`,
           );
         }
-        newApproval.comments = comments; // Include comments if provided
+        newApproval.comments = comments;
 
         await leaveApprovalRepository.save(newApproval);
       } catch (logError) {
@@ -835,7 +834,7 @@ export const cancelLeaveHandler: RequestHandler<
         });
 
     } catch (error) {
-        if (queryRunner.isTransactionActive) { // Check if transaction is active before trying to rollback
+        if (queryRunner.isTransactionActive) {
             await queryRunner.rollbackTransaction();
         }
         console.error(`Error cancelling leave request ${leaveId}:`, error);
@@ -880,11 +879,10 @@ const getLeaveAvailabilityHandler: RequestHandler<
       ])
       .where("leave.status = :statusApproved", {
         statusApproved: LeaveStatus.Approved,
-      }); // Initial WHERE clause with named parameter
+      });
 
     if (user.role_id === ADMIN_ROLE_ID) {
     } else if (user.role_id === MANAGER_ROLE_ID) {
-      // Managers view leaves of their direct reports AND their own leaves
       queryBuilder.andWhere(
         new Brackets((qb) => {
           qb.where("user.manager_id = :managerId", {
